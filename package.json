@@ -1,0 +1,12 @@
+{
+  "name": "paint-maze",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Paint Maze - 3D maze paint-rolling game (StarHermit #55)",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "three": "^0.185.1",
+    "ws": "^8.21.3"
+  }
+}

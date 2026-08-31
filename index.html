@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Paint Maze #55</title>
+<style>
+  html,body { margin:0; padding:0; height:100%; background:#f4f6fb; color:#223; font-family:sans-serif; }
+  #hud { display:flex; gap:2rem; justify-content:center; align-items:center; padding:.5rem; font-size:1.1rem; }
+  #status-line { text-align:center; min-height:1.4em; font-weight:bold; }
+  canvas#game-canvas { display:block; width:100%; height:auto; margin:0 auto; max-width:min(96vw,72vh); aspect-ratio:1/1; background:#eef1f8; border-radius:8px; }
+  #controls { display:flex; gap:.5rem; justify-content:center; padding:.5rem; flex-wrap:wrap; }
+  button { font-size:1rem; padding:.4rem .9rem; border:none; border-radius:6px; background:#3aa0ff; color:white; cursor:pointer; min-width:2.4em; }
+</style>
+</head>
+<body>
+<div id="hud">
+  <span>Remaining: <span id="hud-score"></span></span>
+  <span>Moves: <span id="hud-moves"></span></span>
+</div>
+<p id="status-line" aria-live="polite"></p>
+<canvas id="game-canvas" width="960" height="720"></canvas>
+<div id="controls">
+  <button id="btn-up">&#8593;</button>
+  <button id="btn-left">&#8592;</button>
+  <button id="btn-down">&#8595;</button>
+  <button id="btn-right">&#8594;</button>
+</div>
+<script src="/bundle.js"></script>
+<script>if (window.__paintMaze) window.__paintMaze.start();</script>
+</body>
+</html>

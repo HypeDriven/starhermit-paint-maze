@@ -1,0 +1,74 @@
+[
+  {
+    "name": "ball-roll",
+    "seconds": 1,
+    "prompt": "A heavy glass marble rolling across smooth painted wood, brief low rumble that fades as it glides.",
+    "event": "move"
+  },
+  {
+    "name": "ball-stop",
+    "seconds": 1,
+    "prompt": "A glass marble knocking softly against a wooden maze wall and settling, single muted thunk.",
+    "event": "move"
+  },
+  {
+    "name": "paint-swipe",
+    "seconds": 1,
+    "prompt": "A wide wet paintbrush swiping a glossy stripe of thick paint across stretched canvas.",
+    "event": "move"
+  },
+  {
+    "name": "paint-splatter",
+    "seconds": 1,
+    "prompt": "Wet droplets of thick acrylic paint splattering onto a wooden board, quick sticky patter.",
+    "event": "move"
+  },
+  {
+    "name": "roller-slide",
+    "seconds": 1,
+    "prompt": "A foam paint roller gliding over plaster leaving a wet coat, short even rolling stroke.",
+    "event": "move"
+  },
+  {
+    "name": "marble-whoosh",
+    "seconds": 1,
+    "prompt": "A small marble darting through a short corridor, quick airy whoosh ending in a soft tap.",
+    "event": "move"
+  },
+  {
+    "name": "wall-bump",
+    "seconds": 1,
+    "prompt": "A rubber ball bumping into a hollow wooden partition, dampened rounded thud.",
+    "event": "move"
+  },
+  {
+    "name": "wet-trail",
+    "seconds": 1,
+    "prompt": "Thick liquid paint trailing and dripping behind a rolling ball on ceramic tile.",
+    "event": "move"
+  },
+  {
+    "name": "win-chime",
+    "seconds": 2,
+    "prompt": "A bright three-note mallet chime rising in pitch, clean and celebratory.",
+    "event": "win"
+  },
+  {
+    "name": "victory-fanfare",
+    "seconds": 3,
+    "prompt": "A short cheerful fanfare of bells with a warm brass swell resolving upward.",
+    "event": "win"
+  },
+  {
+    "name": "level-complete",
+    "seconds": 2,
+    "prompt": "A satisfying ascending sparkle of tuned percussion ending on a clear high tone.",
+    "event": "win"
+  },
+  {
+    "name": "paint-finale",
+    "seconds": 2,
+    "prompt": "A joyful splash of paint followed by shimmering confetti-like glass tones.",
+    "event": "win"
+  }
+]

@@ -1,0 +1,3 @@
+name=Paint Maze #55
+launch=index.html
+server=server.js
