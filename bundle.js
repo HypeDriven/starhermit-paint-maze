@@ -40,94 +40,233 @@
       function opposite(d) {
         return (d + 2) % 4;
       }
+      function startIndex(size) {
+        const c = (size - 1) / 2 | 0;
+        return c * size + c;
+      }
+      var SIZE = 13;
+      var MIN_COVERAGE = 0.8;
+      var MAX_CANDIDATES = 400;
+      function layout(size, density, rand) {
+        const cells = new Array(size * size).fill(0);
+        for (let i = 0; i < size * size; i++) {
+          const x = i % size, y = (i - x) / size;
+          for (let d = 0; d < 4; d++) {
+            const nx = x + DIRS[d].dx, ny = y + DIRS[d].dy;
+            if (nx < 0 || ny < 0 || nx >= size || ny >= size) cells[i] |= 1 << d;
+          }
+        }
+        for (let i = 0; i < size * size; i++) {
+          const x = i % size, y = (i - x) / size;
+          for (const d of [1, 2]) {
+            const nx = x + DIRS[d].dx, ny = y + DIRS[d].dy;
+            if (nx >= size || ny >= size) continue;
+            if (rand() < density) {
+              cells[i] |= 1 << d;
+              cells[ny * size + nx] |= 1 << opposite(d);
+            }
+          }
+        }
+        return cells;
+      }
+      function analyzeLayout(level, start) {
+        const size = level.size;
+        const stops = new Uint8Array(size * size);
+        const mask = new Uint8Array(size * size);
+        const back = /* @__PURE__ */ new Map();
+        const queue = [start];
+        stops[start] = 1;
+        mask[start] = 1;
+        while (queue.length > 0) {
+          const cur = queue.pop();
+          for (const d of legalDirs(level, cur)) {
+            const path = cellsAlong(level, cur, d);
+            for (const i of path) mask[i] = 1;
+            const stop = path[path.length - 1];
+            if (!back.has(stop)) back.set(stop, []);
+            back.get(stop).push(cur);
+            if (!stops[stop]) {
+              stops[stop] = 1;
+              queue.push(stop);
+            }
+          }
+        }
+        const reachable = new Uint8Array(size * size);
+        const rq = [start];
+        reachable[start] = 1;
+        let backCount = 1, stopCount = 0;
+        while (rq.length > 0) {
+          const cur = rq.pop();
+          for (const from of back.get(cur) || []) {
+            if (!reachable[from]) {
+              reachable[from] = 1;
+              backCount++;
+              rq.push(from);
+            }
+          }
+        }
+        let paintCount = 0;
+        for (let i = 0; i < size * size; i++) {
+          if (stops[i]) stopCount++;
+          if (mask[i]) paintCount++;
+        }
+        return { mask, paintCount, strong: backCount === stopCount };
+      }
       function buildLevel(seedStr) {
         const n = hashString(seedStr);
         const rand = mulberry32(n);
-        const size = 15;
-        const cells = new Array(size * size);
-        for (let i = 0; i < size * size; i++) {
-          cells[i] = 15;
+        const size = SIZE;
+        const start = startIndex(size);
+        let best = null;
+        for (let k = 0; k < MAX_CANDIDATES; k++) {
+          const density = 0.12 + k % 7 * 0.02;
+          const cells2 = layout(size, density, rand);
+          const level2 = { seed: n, size, cells: cells2 };
+          const info = analyzeLayout(level2, start);
+          if (!info.strong) continue;
+          level2.paintable = info.mask;
+          if (info.paintCount / (size * size) >= MIN_COVERAGE) return level2;
+          if (!best || info.paintCount > best.count) best = { level: level2, count: info.paintCount };
         }
-        const visited = new Uint8Array(size * size);
-        let stack = [size / 2 | 0];
-        visited[7] = 1;
-        while (stack.length > 0) {
-          const cur = stack[stack.length - 1];
-          const cx = cur % size, cy = (cur - cx) / size;
-          let options = [];
-          for (let d2 = 0; d2 < 4; d2++) {
-            const nx2 = cx + DIRS[d2].dx, ny2 = cy + DIRS[d2].dy;
-            if (nx2 >= 0 && nx2 < size && ny2 >= 0 && ny2 < size) {
-              const ni = ny2 * size + nx2;
-              if (!visited[ni]) options.push(d2);
-            }
-          }
-          if (options.length === 0) {
-            stack.pop();
-            continue;
-          }
-          const d = options[Math.floor(rand() * options.length)];
-          const nx = cx + DIRS[d].dx, ny = cy + DIRS[d].dy;
-          cells[cur] &= ~(1 << d);
-          cells[ny * size + nx] &= ~(1 << opposite(d));
-          visited[ny * size + nx] = 1;
-          stack.push(ny * size + nx);
-        }
-        return { seed: n, size, cells };
+        if (best) return best.level;
+        const cells = layout(size, 0, rand);
+        const level = { seed: n, size, cells };
+        level.paintable = analyzeLayout(level, start).mask;
+        return level;
       }
       function hasWall(cells, idx, d) {
         return (cells[idx] & 1 << d) !== 0;
       }
       function legalDirs(level, idx) {
         const out = [];
-        for (let d = 0; d < 4; d++) if (!hasWall(level, idx, d)) out.push(d);
+        for (let d = 0; d < 4; d++) if (!hasWall(level.cells, idx, d)) out.push(d);
         return out;
       }
       function rollStop(level, startIdx, d) {
         const size = level.size;
         let cx = startIdx % size, cy = (startIdx - cx) / size;
-        while (!hasWall(level, cy * size + cx, d)) {
+        while (!hasWall(level.cells, cy * size + cx, d)) {
           cx += DIRS[d].dx;
           cy += DIRS[d].dy;
         }
         return cy * size + cx;
       }
+      function cellsAlong(level, startIdx, d) {
+        const size = level.size;
+        const stop = rollStop(level, startIdx, d);
+        const out = [startIdx];
+        let cur = startIdx;
+        while (cur !== stop) {
+          cur += DIRS[d].dy * size + DIRS[d].dx;
+          out.push(cur);
+        }
+        return out;
+      }
       function newGame(seedStr) {
         const level = buildLevel(seedStr);
-        return {
+        const start = startIndex(level.size);
+        const painted2 = new Uint8Array(level.size * level.size);
+        painted2[start] = 1;
+        const state = {
           schema: SCHEMA_VERSION,
+          seedStr: String(seedStr),
           levelSeed: level.seed,
           size: level.size,
           cells: level.cells.slice(),
-          ballIdx: 7,
-          painted: new Uint8Array(level.size * level.size),
-          // 0 uncolored,1 colored
+          startIdx: start,
+          ballIdx: start,
+          painted: painted2,
+          paintable: level.paintable.slice(),
           moves: 0,
           turns: 0,
           won: false,
           winReason: null
         };
+        state.goal = countPaintable(state);
+        state.par = solvePar(state);
+        return state;
+      }
+      function cloneState(state) {
+        return Object.assign({}, state, {
+          cells: state.cells.slice(),
+          painted: state.painted.slice(),
+          paintable: state.paintable.slice()
+        });
+      }
+      function gainOf(state, d) {
+        const path = cellsAlong(state, state.ballIdx, d);
+        let g = 0;
+        for (const i of path) if (!state.painted[i]) g++;
+        return g;
+      }
+      function bestMove(state) {
+        if (state.won) return null;
+        const dirs = legalDirs(state, state.ballIdx);
+        if (dirs.length === 0) return null;
+        let bestD = null, bestG = 0;
+        for (const d of dirs) {
+          const g = gainOf(state, d);
+          if (g > bestG) {
+            bestG = g;
+            bestD = d;
+          }
+        }
+        if (bestD !== null) return bestD;
+        const seen = new Uint8Array(state.size * state.size);
+        seen[state.ballIdx] = 1;
+        let frontier = dirs.map((d) => ({ first: d, at: rollStop(state, state.ballIdx, d) }));
+        for (const f of frontier) seen[f.at] = 1;
+        for (let depth = 0; depth < state.size * state.size && frontier.length > 0; depth++) {
+          const next = [];
+          for (const f of frontier) {
+            for (const d of legalDirs(state, f.at)) {
+              const path = cellsAlong(state, f.at, d);
+              for (const i of path) if (!state.painted[i]) return f.first;
+              const stop = path[path.length - 1];
+              if (!seen[stop]) {
+                seen[stop] = 1;
+                next.push({ first: f.first, at: stop });
+              }
+            }
+          }
+          frontier = next;
+        }
+        return dirs[0];
+      }
+      function solvePar(state) {
+        const sim = cloneState(state);
+        const cap = state.size * state.size * 4;
+        while (!sim.won && sim.moves < cap) {
+          const d = bestMove(sim);
+          if (d === null || !tryRoll(sim, d)) break;
+        }
+        return sim.won ? sim.moves : null;
       }
       function isPainted(state, idx) {
         return state.painted[idx] !== 0;
       }
-      function remaining(state) {
+      function isPaintable(state, idx) {
+        return state.paintable[idx] !== 0;
+      }
+      function countPaintable(state) {
         let c = 0;
-        for (let i = 0; i < state.size * state.size; i++) if (!state.painted[i]) c++;
+        for (let i = 0; i < state.size * state.size; i++) if (state.paintable[i]) c++;
         return c;
       }
+      function remaining(state) {
+        let c = 0;
+        for (let i = 0; i < state.size * state.size; i++) if (state.paintable[i] && !state.painted[i]) c++;
+        return c;
+      }
+      function painted(state) {
+        return countPaintable(state) - remaining(state);
+      }
       function tryRoll(state, d) {
+        if (state.won) return null;
         if (hasWall(state.cells, state.ballIdx, d)) return null;
-        const stop = rollStop({ size: state.size, cells: state.cells }, state.ballIdx, d);
-        let cx = state.ballIdx % state.size, cy = (state.ballIdx - cx) / state.size;
-        state.painted[state.ballIdx] = 1;
-        while (!(cx === stop % state.size && cy === (stop - stop % state.size) / state.size)) {
-          cx += DIRS[d].dx;
-          cy += DIRS[d].dy;
-          const ni = cy * state.size + cx;
-          state.painted[ni] = 1;
-        }
-        state.ballIdx = stop;
+        const path = cellsAlong({ size: state.size, cells: state.cells }, state.ballIdx, d);
+        for (const i of path) state.painted[i] = 1;
+        state.ballIdx = path[path.length - 1];
         state.moves++;
         state.turns++;
         if (remaining(state) === 0) {
@@ -137,7 +276,72 @@
         return state;
       }
       function serialize(state) {
-        return JSON.stringify(state);
+        return JSON.stringify({
+          schema: state.schema,
+          seedStr: state.seedStr,
+          levelSeed: state.levelSeed,
+          size: state.size,
+          cells: Array.from(state.cells),
+          startIdx: state.startIdx,
+          ballIdx: state.ballIdx,
+          painted: Array.from(state.painted),
+          paintable: Array.from(state.paintable),
+          moves: state.moves,
+          turns: state.turns,
+          won: state.won,
+          winReason: state.winReason,
+          goal: state.goal,
+          par: state.par
+        });
+      }
+      function deserialize(json) {
+        let o;
+        try {
+          o = typeof json === "string" ? JSON.parse(json) : json;
+        } catch (e) {
+          return null;
+        }
+        if (!o || o.schema !== SCHEMA_VERSION) return null;
+        const size = o.size | 0;
+        if (!Number.isInteger(o.size) || size < 1 || size > 64 || !Array.isArray(o.cells) || o.cells.length !== size * size) return null;
+        if (!Array.isArray(o.painted) || o.painted.length !== size * size) return null;
+        if (!Array.isArray(o.paintable) || o.paintable.length !== size * size) return null;
+        if (!Number.isInteger(o.ballIdx) || !(o.ballIdx >= 0 && o.ballIdx < size * size)) return null;
+        if (o.cells.some((v) => !Number.isInteger(v) || v < 0 || v > 15)) return null;
+        if (o.painted.some((v) => v !== 0 && v !== 1) || o.paintable.some((v) => v !== 0 && v !== 1)) return null;
+        if (!o.paintable[o.ballIdx]) return null;
+        for (let i = 0; i < size * size; i++) {
+          const x = i % size, y = Math.floor(i / size);
+          for (let d = 0; d < 4; d++) {
+            const nx = x + DIRS[d].dx, ny = y + DIRS[d].dy;
+            const wall = hasWall(o.cells, i, d);
+            if (nx < 0 || ny < 0 || nx >= size || ny >= size) {
+              if (!wall) return null;
+            } else if (wall !== hasWall(o.cells, ny * size + nx, opposite(d))) return null;
+          }
+        }
+        const state = {
+          schema: SCHEMA_VERSION,
+          seedStr: String(o.seedStr || ""),
+          levelSeed: o.levelSeed >>> 0,
+          size,
+          cells: o.cells.slice(),
+          startIdx: o.startIdx >= 0 && o.startIdx < size * size ? o.startIdx : startIndex(size),
+          ballIdx: o.ballIdx,
+          painted: Uint8Array.from(o.painted),
+          paintable: Uint8Array.from(o.paintable),
+          moves: Math.max(0, o.moves | 0),
+          turns: Math.max(0, o.turns | 0),
+          won: !!o.won,
+          winReason: o.winReason || null
+        };
+        state.goal = countPaintable(state);
+        state.par = Number.isFinite(o.par) ? o.par : null;
+        if (remaining(state) === 0) {
+          state.won = true;
+          state.winReason = state.winReason || "complete";
+        }
+        return state;
       }
       module.exports = {
         SCHEMA_VERSION,
@@ -145,15 +349,24 @@
         hashString,
         DIRS,
         opposite,
+        startIndex,
         buildLevel,
         hasWall,
         legalDirs,
         rollStop,
+        cellsAlong,
         newGame,
+        cloneState,
         isPainted,
+        isPaintable,
+        countPaintable,
         remaining,
+        painted,
+        gainOf,
+        bestMove,
         tryRoll,
-        serialize
+        serialize,
+        deserialize
       };
     }
   });
@@ -162,6 +375,11 @@
   var require_three = __commonJS({
     "node_modules/three/build/three.cjs"(exports) {
       "use strict";
+      /**
+       * @license
+       * Copyright 2010-2026 Three.js Authors
+       * SPDX-License-Identifier: MIT
+       */
       var REVISION = "185";
       var MOUSE = { LEFT: 0, MIDDLE: 1, RIGHT: 2, ROTATE: 0, DOLLY: 1, PAN: 2 };
       var TOUCH = { ROTATE: 0, PAN: 1, DOLLY_PAN: 2, DOLLY_ROTATE: 3 };
@@ -43661,62 +43879,292 @@ void main() {
       "use strict";
       var THREE = require_three();
       var rules = require_rules();
+      var COLOR = {
+        painted: 3112928,
+        unpainted: 15133427,
+        block: 8950957,
+        wall: 4871272,
+        ball: 16763196,
+        background: 15659512
+      };
+      var MARGIN = 0.9;
       var renderer = null;
       var scene = null;
       var camera = null;
       var ballMesh = null;
-      var cellGroup = null;
-      var wallGroup = null;
+      var cellMesh = null;
+      var wallMesh = null;
+      var boardGroup = null;
+      var canvasEl = null;
+      var fallbackCtx = null;
       var disposed = false;
+      var currentSize = 0;
+      var frame = 0;
+      var lastState = null;
+      var ballPos = { x: 0, y: 0 };
+      var ballTarget = { x: 0, y: 0 };
+      function reducedMotion() {
+        return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      }
+      function worldX(x, size) {
+        return x - (size - 1) / 2;
+      }
+      function worldY(y, size) {
+        return -(y - (size - 1) / 2);
+      }
       function init(canvas) {
-        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        scene = new THREE.Scene();
-        camera = new THREE.OrthographicCamera(-10, 10, 7.5, -7.5, -100, 100);
-        const amb = new THREE.AmbientLight(16777215, 0.6);
-        scene.add(amb);
-        const dir = new THREE.DirectionalLight(16777215, 0.9);
-        dir.position.set(-8, -8, 20);
-        scene.add(dir);
-        cellGroup = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 16777215 }), rules.size * rules.size);
-        wallGroup = new THREE.Group();
-        ballMesh = new THREE.Mesh(new THREE.SphereGeometry(0.45, 24, 24), new THREE.MeshStandardMaterial({ color: 16763955 }));
+        canvasEl = canvas;
         disposed = false;
+        try {
+          renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        } catch (e) {
+          renderer = null;
+        }
+        if (!renderer) {
+          fallbackCtx = canvas.getContext("2d");
+          return !!fallbackCtx;
+        }
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setClearColor(COLOR.background, 1);
+        scene = new THREE.Scene();
+        camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 200);
+        camera.position.set(0, -6, 18);
+        camera.lookAt(0, 0, 0);
+        scene.add(new THREE.AmbientLight(16777215, 1.5));
+        const key = new THREE.DirectionalLight(16777215, 2.2);
+        key.position.set(-6, -8, 14);
+        scene.add(key);
+        const fill = new THREE.DirectionalLight(13623551, 0.8);
+        fill.position.set(8, 10, 6);
+        scene.add(fill);
+        boardGroup = new THREE.Group();
+        scene.add(boardGroup);
+        return true;
+      }
+      function usable() {
+        return !disposed && (!!renderer || !!fallbackCtx);
+      }
+      function disposeBoard() {
+        if (!boardGroup) return;
+        for (const child of boardGroup.children.slice()) {
+          boardGroup.remove(child);
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) child.material.dispose();
+        }
+        cellMesh = null;
+        wallMesh = null;
+        ballMesh = null;
+      }
+      function wallSegments(state) {
+        const size = state.size;
+        const out = [];
+        for (let i = 0; i < size * size; i++) {
+          const x = i % size, y = (i - x) / size;
+          for (const d of [1, 2]) {
+            const nx = x + rules.DIRS[d].dx, ny = y + rules.DIRS[d].dy;
+            const outside = nx >= size || ny >= size;
+            if (!rules.hasWall(state.cells, i, d)) continue;
+            if (outside) continue;
+            out.push(d === 1 ? { x: worldX(x, size) + 0.5, y: worldY(y, size), w: 0.12, h: 1 } : { x: worldX(x, size), y: worldY(y, size) - 0.5, w: 1, h: 0.12 });
+          }
+        }
+        const span = size;
+        out.push({ x: 0, y: span / 2, w: span + 0.12, h: 0.12 });
+        out.push({ x: 0, y: -span / 2, w: span + 0.12, h: 0.12 });
+        out.push({ x: -span / 2, y: 0, w: 0.12, h: span + 0.12 });
+        out.push({ x: span / 2, y: 0, w: 0.12, h: span + 0.12 });
+        return out;
+      }
+      function buildBoard(state) {
+        disposeBoard();
+        const size = state.size;
+        currentSize = size;
+        cellMesh = new THREE.InstancedMesh(
+          new THREE.BoxGeometry(0.92, 0.92, 0.3),
+          new THREE.MeshStandardMaterial({ roughness: 0.75, metalness: 0.05 }),
+          size * size
+        );
+        boardGroup.add(cellMesh);
+        const segs = wallSegments(state);
+        wallMesh = new THREE.InstancedMesh(
+          new THREE.BoxGeometry(1, 1, 0.75),
+          new THREE.MeshStandardMaterial({ color: COLOR.wall, roughness: 0.6, metalness: 0.1 }),
+          segs.length
+        );
+        const m = new THREE.Matrix4();
+        segs.forEach((s, i) => {
+          m.makeScale(s.w, s.h, 1).setPosition(s.x, s.y, 0.35);
+          wallMesh.setMatrixAt(i, m);
+        });
+        wallMesh.instanceMatrix.needsUpdate = true;
+        boardGroup.add(wallMesh);
+        ballMesh = new THREE.Mesh(
+          new THREE.SphereGeometry(0.34, 24, 24),
+          new THREE.MeshStandardMaterial({ color: COLOR.ball, roughness: 0.35, metalness: 0.15 })
+        );
+        boardGroup.add(ballMesh);
+        ballTarget = ballCoords(state);
+        ballPos = { x: ballTarget.x, y: ballTarget.y };
+        if (camera) {
+          const half = size / 2 + MARGIN;
+          camera.top = half;
+          camera.bottom = -half;
+          camera.left = -half;
+          camera.right = half;
+          camera.updateProjectionMatrix();
+        }
+      }
+      function ballCoords(state) {
+        const size = state.size;
+        const x = state.ballIdx % size, y = (state.ballIdx - x) / size;
+        return { x: worldX(x, size), y: worldY(y, size) };
       }
       function update(state) {
-        if (!renderer || disposed) return;
-        const size = state.size;
-        for (let i = 0; i < size * size; i++) {
-          const cx = i % size, cy = (i - cx) / size;
-          cellGroup.setMatrixAt(i, new THREE.Matrix4().makeTranslation(cx - (size - 1) / 2, -(cy - (size - 1) / 2), 0));
-          cellGroup.setColorAt(i, rules.isPainted(state, i) ? new THREE.Color(3842303) : new THREE.Color(14540253));
+        if (!usable() || !state) return;
+        lastState = state;
+        if (fallbackCtx) {
+          draw2d(state);
+          return;
         }
-        cellGroup.instanceMatrix.needsUpdate = true;
-        if (cellGroup.instanceColor) cellGroup.instanceColor.needsUpdate = true;
-        ballMesh.position.set(state.ballIdx % size - (size - 1) / 2, -((state.ballIdx - state.ballIdx % size) / size - (size - 1) / 2), 0);
+        if (!cellMesh || currentSize !== state.size) buildBoard(state);
+        const size = state.size;
+        const m = new THREE.Matrix4();
+        const color = new THREE.Color();
+        for (let i = 0; i < size * size; i++) {
+          const x = i % size, y = (i - x) / size;
+          const paintable = rules.isPaintable(state, i);
+          const painted = paintable && rules.isPainted(state, i);
+          const z = !paintable ? 0.3 : painted ? 0.06 : -0.06;
+          m.makeTranslation(worldX(x, size), worldY(y, size), z);
+          cellMesh.setMatrixAt(i, m);
+          cellMesh.setColorAt(i, color.setHex(!paintable ? COLOR.block : painted ? COLOR.painted : COLOR.unpainted));
+        }
+        cellMesh.instanceMatrix.needsUpdate = true;
+        if (cellMesh.instanceColor) cellMesh.instanceColor.needsUpdate = true;
+        ballTarget = ballCoords(state);
+        if (reducedMotion()) ballPos = ballTarget;
+        ballMesh.position.set(ballPos.x, ballPos.y, 0.45);
+        renderFrame();
       }
-      function resize(width, height) {
+      function renderFrame() {
         if (!renderer || disposed) return;
-        renderer.setSize(width, height);
-        const aspect = width / height;
-        camera.left = -7.5 * Math.max(aspect, 1);
-        camera.right = 7.5 * Math.max(aspect, 1);
-        camera.top = 7.5;
-        camera.bottom = -7.5;
-        camera.updateProjectionMatrix();
+        renderer.render(scene, camera);
+      }
+      function tick() {
+        if (!usable()) return;
+        if (fallbackCtx) return;
+        if (!ballMesh) return;
+        const dx = ballTarget.x - ballPos.x, dy = ballTarget.y - ballPos.y;
+        if (Math.abs(dx) < 2e-3 && Math.abs(dy) < 2e-3) {
+          if (ballPos.x !== ballTarget.x || ballPos.y !== ballTarget.y) {
+            ballPos = { x: ballTarget.x, y: ballTarget.y };
+            ballMesh.position.set(ballPos.x, ballPos.y, 0.45);
+            renderFrame();
+          }
+          return;
+        }
+        ballPos = { x: ballPos.x + dx * 0.28, y: ballPos.y + dy * 0.28 };
+        ballMesh.position.set(ballPos.x, ballPos.y, 0.45);
+        renderFrame();
+      }
+      function start() {
+        if (frame) return;
+        const loop = () => {
+          frame = requestAnimationFrame(loop);
+          if (document.hidden) return;
+          tick();
+        };
+        frame = requestAnimationFrame(loop);
+      }
+      function stop() {
+        if (frame) cancelAnimationFrame(frame);
+        frame = 0;
+      }
+      function draw2d(state) {
+        const ctx = fallbackCtx;
+        const size = state.size;
+        const w = canvasEl.width, h = canvasEl.height;
+        const cell = Math.floor(Math.min(w, h) / (size + 1));
+        const ox = (w - cell * size) / 2, oy = (h - cell * size) / 2;
+        ctx.fillStyle = "#eef1f8";
+        ctx.fillRect(0, 0, w, h);
+        for (let i = 0; i < size * size; i++) {
+          const x = i % size, y = (i - x) / size;
+          const paintable = rules.isPaintable(state, i);
+          const painted = paintable && rules.isPainted(state, i);
+          ctx.fillStyle = !paintable ? "#8894ad" : painted ? "#2f7fe0" : "#e6eaf3";
+          ctx.fillRect(ox + x * cell + 1, oy + y * cell + 1, cell - 2, cell - 2);
+        }
+        ctx.strokeStyle = "#4a5468";
+        ctx.lineWidth = Math.max(2, cell * 0.12);
+        ctx.beginPath();
+        for (let i = 0; i < size * size; i++) {
+          const x = i % size, y = (i - x) / size;
+          if (rules.hasWall(state.cells, i, 1)) {
+            ctx.moveTo(ox + (x + 1) * cell, oy + y * cell);
+            ctx.lineTo(ox + (x + 1) * cell, oy + (y + 1) * cell);
+          }
+          if (rules.hasWall(state.cells, i, 2)) {
+            ctx.moveTo(ox + x * cell, oy + (y + 1) * cell);
+            ctx.lineTo(ox + (x + 1) * cell, oy + (y + 1) * cell);
+          }
+          if (rules.hasWall(state.cells, i, 0) && y === 0) {
+            ctx.moveTo(ox + x * cell, oy);
+            ctx.lineTo(ox + (x + 1) * cell, oy);
+          }
+          if (rules.hasWall(state.cells, i, 3) && x === 0) {
+            ctx.moveTo(ox, oy + y * cell);
+            ctx.lineTo(ox, oy + (y + 1) * cell);
+          }
+        }
+        ctx.stroke();
+        const bx = state.ballIdx % size, by = (state.ballIdx - bx) / size;
+        ctx.fillStyle = "#ffc93c";
+        ctx.beginPath();
+        ctx.arc(ox + (bx + 0.5) * cell, oy + (by + 0.5) * cell, cell * 0.33, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#3a3a1a";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      function resize() {
+        if (!usable() || !canvasEl) return;
+        const rect = canvasEl.getBoundingClientRect();
+        const w = Math.max(1, Math.round(rect.width));
+        const h = Math.max(1, Math.round(rect.height));
+        if (renderer) {
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+          renderer.setSize(w, h, false);
+          if (camera && currentSize) {
+            const half = currentSize / 2 + MARGIN;
+            const aspect = w / h;
+            camera.left = -half * Math.max(aspect, 1);
+            camera.right = half * Math.max(aspect, 1);
+            camera.top = half / Math.min(aspect, 1);
+            camera.bottom = -half / Math.min(aspect, 1);
+            camera.updateProjectionMatrix();
+          }
+          renderFrame();
+        } else if (fallbackCtx) {
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          canvasEl.width = Math.round(w * dpr);
+          canvasEl.height = Math.round(h * dpr);
+          if (lastState) draw2d(lastState);
+        }
       }
       function dispose() {
-        if (!renderer || disposed) return;
+        if (disposed) return;
         disposed = true;
-        renderer.dispose();
+        stop();
+        disposeBoard();
+        if (renderer) renderer.dispose();
         renderer = null;
         scene = null;
         camera = null;
-        ballMesh = null;
-        cellGroup = null;
-        wallGroup = null;
+        boardGroup = null;
+        fallbackCtx = null;
       }
-      module.exports = { init, update, resize, dispose };
+      module.exports = { init, update, resize, start, stop, dispose, usesWebGL: () => !!renderer };
     }
   });
 
@@ -43795,96 +44243,344 @@ void main() {
   // ui.js
   var require_ui = __commonJS({
     "ui.js"(exports, module) {
+      "use strict";
       var rules = require_rules();
       var render = require_render();
       var audio = require_audio();
-      var canvasEl = null;
-      var hudScoreEl = null;
-      var hudMovesEl = null;
-      var statusEl = null;
-      var overlayEl = null;
-      var btnUp;
-      var btnDown;
-      var btnLeft;
-      var btnRight;
-      var btnPause;
-      var btnHelp;
+      var SAVE_KEY = "paint-maze:v1:save";
+      var BEST_KEY = "paint-maze:v1:best";
+      var UNDO_LIMIT = 200;
+      var DIR_NAME = ["up", "right", "down", "left"];
+      var el = {};
+      var _state = null;
+      var history = [];
+      var started = false;
+      function $(id) {
+        return document.getElementById(id);
+      }
+      function store(key, value) {
+        try {
+          window.localStorage.setItem(key, value);
+        } catch (e) {
+        }
+      }
+      function load(key) {
+        try {
+          return window.localStorage.getItem(key);
+        } catch (e) {
+          return null;
+        }
+      }
+      function bestScores() {
+        try {
+          return JSON.parse(load(BEST_KEY) || "{}") || {};
+        } catch (e) {
+          return {};
+        }
+      }
+      function bestFor(seed) {
+        const v = bestScores()[seed];
+        return Number.isFinite(v) ? v : null;
+      }
+      function recordBest(state) {
+        const scores = bestScores();
+        const prev = scores[state.seedStr];
+        if (!Number.isFinite(prev) || state.moves < prev) {
+          scores[state.seedStr] = state.moves;
+          store(BEST_KEY, JSON.stringify(scores));
+        }
+      }
       function init() {
-        canvasEl = document.getElementById("game-canvas");
-        hudScoreEl = document.getElementById("hud-score");
-        hudMovesEl = document.getElementById("hud-moves");
-        statusEl = document.getElementById("status-line");
-        overlayEl = document.getElementById("overlay");
-        btnUp = document.getElementById("btn-up");
-        btnDown = document.getElementById("btn-down");
-        btnLeft = document.getElementById("btn-left");
-        btnRight = document.getElementById("btn-right");
-        btnPause = document.getElementById("btn-pause");
-        btnHelp = document.getElementById("btn-help");
-        render.init(canvasEl);
+        el = {
+          canvas: $("game-canvas"),
+          score: $("hud-score"),
+          moves: $("hud-moves"),
+          par: $("hud-par"),
+          best: $("hud-best"),
+          status: $("status-line"),
+          board: $("board-description"),
+          overlay: $("overlay"),
+          overlayTitle: $("overlay-title"),
+          overlayBody: $("overlay-body"),
+          up: $("btn-up"),
+          down: $("btn-down"),
+          left: $("btn-left"),
+          right: $("btn-right"),
+          undo: $("btn-undo"),
+          hint: $("btn-hint"),
+          restart: $("btn-restart"),
+          next: $("btn-new"),
+          overlayNext: $("btn-overlay-next")
+        };
+        const ok = render.init(el.canvas);
+        if (!ok) showStatus("Graphics could not start on this device.");
+        return ok;
       }
       function showStatus(text) {
-        if (statusEl) statusEl.textContent = text;
+        if (el.status) el.status.textContent = text;
       }
-      function tryDirection(d) {
-        const before = rules.serialize(stateRef());
-        if (!rules.tryRoll(stateRef(), d)) return false;
-        afterChange(before);
-        return true;
-      }
-      var _state = null;
       function stateRef() {
         return _state;
       }
       function setState(s) {
         _state = s;
+        history = [];
       }
-      function afterChange(beforeJson) {
+      function randomSeed() {
+        return "pm-" + Date.now().toString(36) + "-" + Math.floor(Math.random() * 1e6).toString(36);
+      }
+      function startGame(seedStr) {
+        setState(rules.newGame(seedStr));
+        persist();
+        render.update(_state);
+        refresh();
+        hideOverlay();
+        showStatus("Roll the paint ball to cover every open floor tile.");
+      }
+      function persist() {
+        if (_state) store(SAVE_KEY, rules.serialize(_state));
+      }
+      function restore() {
+        const saved = rules.deserialize(load(SAVE_KEY));
+        if (!saved) return false;
+        setState(saved);
+        return true;
+      }
+      function describeBoard() {
         const s = _state;
-        hudScoreEl.textContent = String(rules.remaining(s));
-        hudMovesEl.textContent = String(s.moves);
+        if (!s) return "";
+        const size = s.size;
+        const x = s.ballIdx % size, y = (s.ballIdx - x) / size;
+        const dirs = rules.legalDirs(s, s.ballIdx).map((d) => DIR_NAME[d]);
+        return `Roller at column ${x + 1}, row ${y + 1}. ${rules.painted(s)} of ${s.goal} tiles painted. Rolls available: ${dirs.length ? dirs.join(", ") : "none"}.`;
+      }
+      function refresh() {
+        const s = _state;
+        if (!s) return;
+        if (el.score) el.score.textContent = String(rules.remaining(s));
+        if (el.moves) el.moves.textContent = String(s.moves);
+        if (el.par) el.par.textContent = s.par === null || s.par === void 0 ? "\u2014" : String(s.par);
+        const best = bestFor(s.seedStr);
+        if (el.best) el.best.textContent = best === null ? "\u2014" : String(best);
+        if (el.board) el.board.textContent = describeBoard();
+        if (el.undo) el.undo.disabled = history.length === 0;
+        for (let d = 0; d < 4; d++) {
+          const btn = [el.up, el.right, el.down, el.left][d];
+          if (!btn) continue;
+          const legal = !s.won && !rules.hasWall(s.cells, s.ballIdx, d);
+          btn.disabled = !legal;
+          btn.setAttribute("aria-disabled", String(!legal));
+        }
+        if (el.hint) el.hint.disabled = s.won;
+      }
+      function showOverlay(title, body) {
+        if (!el.overlay) return;
+        if (el.overlayTitle) el.overlayTitle.textContent = title;
+        if (el.overlayBody) el.overlayBody.textContent = body;
+        el.overlay.hidden = false;
+        if (el.overlayNext) el.overlayNext.focus();
+      }
+      function hideOverlay() {
+        if (el.overlay) el.overlay.hidden = true;
+      }
+      function onWin() {
+        const s = _state;
+        recordBest(s);
+        const par = s.par;
+        const verdict = par === null || par === void 0 ? "" : s.moves <= par ? " That beats par!" : ` Par is ${par}.`;
+        showStatus("Complete!");
+        showOverlay("Maze painted!", `${s.goal} tiles in ${s.moves} moves.${verdict}`);
+        audio.playEvent("win");
+        refresh();
+      }
+      function tryDirection(d) {
+        const s = _state;
+        if (!s || s.won) return false;
+        if (rules.hasWall(s.cells, s.ballIdx, d)) {
+          showStatus(`A wall blocks the roll ${DIR_NAME[d]}.`);
+          return false;
+        }
+        const snapshot = rules.serialize(s);
+        const before = rules.painted(s);
+        if (!rules.tryRoll(s, d)) return false;
+        history.push(snapshot);
+        if (history.length > UNDO_LIMIT) history.shift();
+        const gained = rules.painted(s) - before;
+        persist();
+        render.update(s);
+        refresh();
         if (s.won) {
-          showStatus("Complete!");
-          audio.playEvent("win");
-        } else if (beforeJson !== rules.serialize(s)) {
+          onWin();
+        } else {
+          showStatus(`Rolled ${DIR_NAME[d]}, painted ${gained} tile${gained === 1 ? "" : "s"}. ${rules.remaining(s)} left.`);
           audio.playEvent("move");
         }
-        render.update(s);
+        return true;
+      }
+      function undo() {
+        if (history.length === 0) return false;
+        const prev = rules.deserialize(history.pop());
+        if (!prev) return false;
+        _state = prev;
+        persist();
+        hideOverlay();
+        render.update(_state);
+        refresh();
+        showStatus("Undid the last roll.");
+        return true;
+      }
+      function restart() {
+        if (!_state) return;
+        startGame(_state.seedStr);
+        showStatus("Maze reset.");
+      }
+      function newMaze() {
+        startGame(randomSeed());
+        showStatus("New maze.");
+      }
+      function hint() {
+        const s = _state;
+        if (!s || s.won) return null;
+        const d = rules.bestMove(s);
+        if (d === null) return null;
+        showStatus(`Hint: try rolling ${DIR_NAME[d]}.`);
+        const btn = [el.up, el.right, el.down, el.left][d];
+        if (btn) {
+          btn.classList.add("hinted");
+          setTimeout(() => btn.classList.remove("hinted"), 1200);
+        }
+        return d;
       }
       function onKey(e) {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
         const k = e.key;
-        if (k === "ArrowUp" || k === "w") {
-          tryDirection(0);
-        } else if (k === "ArrowRight" || k === "d") {
-          tryDirection(1);
-        } else if (k === "ArrowDown" || k === "s") {
-          tryDirection(2);
-        } else if (k === "ArrowLeft" || k === "a") {
-          tryDirection(3);
+        let handled = true;
+        if (k === "ArrowUp" || k === "w" || k === "W") tryDirection(0);
+        else if (k === "ArrowRight" || k === "d" || k === "D") tryDirection(1);
+        else if (k === "ArrowDown" || k === "s" || k === "S") tryDirection(2);
+        else if (k === "ArrowLeft" || k === "a" || k === "A") tryDirection(3);
+        else if (k === "u" || k === "U" || k === "z" && !e.shiftKey) undo();
+        else if (k === "r" || k === "R") restart();
+        else if (k === "h" || k === "H") hint();
+        else if (k === "Escape") hideOverlay();
+        else handled = false;
+        if (handled) e.preventDefault();
+      }
+      var SWIPE_MIN = 24;
+      var touchStart = null;
+      function onPointerDown(e) {
+        touchStart = { x: e.clientX, y: e.clientY };
+        if (e.pointerId !== void 0 && el.canvas.setPointerCapture) {
+          try {
+            el.canvas.setPointerCapture(e.pointerId);
+          } catch (err) {
+          }
         }
       }
-      function onPointer(e) {
-        const t = e.target;
-        if (!t) return;
-        if (t.id === "btn-up") tryDirection(0);
-        else if (t.id === "btn-down") tryDirection(2);
-        else if (t.id === "btn-left") tryDirection(3);
-        else if (t.id === "btn-right") tryDirection(1);
+      function onPointerUp(e) {
+        if (!touchStart) return;
+        const dx = e.clientX - touchStart.x, dy = e.clientY - touchStart.y;
+        touchStart = null;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN) return;
+        if (Math.abs(dx) > Math.abs(dy)) tryDirection(dx > 0 ? 1 : 3);
+        else tryDirection(dy > 0 ? 2 : 0);
+      }
+      function onPointerCancel() {
+        touchStart = null;
       }
       function onResize() {
-        render.resize(window.innerWidth, window.innerHeight);
+        render.resize();
       }
-      module.exports = { init, showStatus, tryDirection, stateRef, setState, afterChange, onKey, onPointer, onResize };
+      function bind() {
+        const press = (node, fn) => {
+          if (!node) return;
+          node.addEventListener("click", (e) => {
+            e.preventDefault();
+            fn();
+          });
+        };
+        press(el.up, () => tryDirection(0));
+        press(el.right, () => tryDirection(1));
+        press(el.down, () => tryDirection(2));
+        press(el.left, () => tryDirection(3));
+        press(el.undo, undo);
+        press(el.hint, hint);
+        press(el.restart, restart);
+        press(el.next, newMaze);
+        press(el.overlayNext, newMaze);
+        window.addEventListener("keydown", onKey);
+        window.addEventListener("resize", onResize);
+        window.addEventListener("orientationchange", onResize);
+        if (el.canvas) {
+          el.canvas.addEventListener("pointerdown", onPointerDown);
+          el.canvas.addEventListener("pointerup", onPointerUp);
+          el.canvas.addEventListener("pointercancel", onPointerCancel);
+        }
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) render.stop();
+          else render.start();
+        });
+      }
+      function start() {
+        if (started) return;
+        started = true;
+        init();
+        bind();
+        if (restore()) {
+          render.update(_state);
+          refresh();
+          showStatus(_state.won ? "Maze already complete \u2014 start a new one." : "Resumed your saved maze.");
+          if (_state.won) showOverlay("Maze painted!", `${_state.goal} tiles in ${_state.moves} moves.`);
+        } else {
+          startGame(randomSeed());
+        }
+        render.resize();
+        render.start();
+      }
+      module.exports = {
+        init,
+        bind,
+        start,
+        showStatus,
+        tryDirection,
+        undo,
+        restart,
+        newMaze,
+        hint,
+        stateRef,
+        setState,
+        refresh,
+        describeBoard,
+        onKey,
+        onResize
+      };
     }
   });
-  require_ui();
-})();
-/*! Bundled license information:
 
-three/build/three.cjs:
-  (**
-   * @license
-   * Copyright 2010-2026 Three.js Authors
-   * SPDX-License-Identifier: MIT
-   *)
-*/
+  // main.js
+  var require_main = __commonJS({
+    "main.js"(exports, module) {
+      var rules = require_rules();
+      var ui = require_ui();
+      var api = {
+        start: () => ui.start(),
+        rules,
+        state: () => ui.stateRef(),
+        hint: () => {
+          const s = ui.stateRef();
+          return s ? rules.bestMove(s) : null;
+        }
+      };
+      if (typeof window !== "undefined") {
+        window.__paintMaze = api;
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", api.start, { once: true });
+        } else {
+          api.start();
+        }
+      }
+      module.exports = api;
+    }
+  });
+  require_main();
+})();

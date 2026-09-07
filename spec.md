@@ -1,10 +1,10 @@
 # Paint Maze — Product and Game Specification
 
-**Document status:** design specification only; no implementation is included.  
-**Game index:** 55  
-**Genre:** Coverage puzzle  
-**Players:** 1 player; optional asynchronous score comparison  
-**Targets:** desktop browsers, mobile browsers, landscape and portrait where practical  
+**Document status:** design specification; a playable subset is implemented (see "Implemented build" below).
+**Game index:** 55
+**Genre:** Coverage puzzle
+**Players:** 1 player; optional asynchronous score comparison
+**Targets:** desktop browsers, mobile browsers, landscape and portrait where practical
 **Rendering direction:** Three.js-first presentation with a fully usable semantic HTML interface layer
 
 ## 1. Product vision
@@ -20,6 +20,28 @@ The experience must be original. Do not copy names, layouts, characters, iconogr
 3. **Short path to play:** a returning player reaches the primary playfield in at most two deliberate actions.
 4. **Fair mastery:** randomness is seeded and inspectable; outcomes never depend on hidden purchases or invisible stat boosts.
 5. **Scalable beauty:** the same art direction survives low-power mobile hardware and high-resolution desktop displays.
+
+## 1a. Implemented build
+
+The shipped build covers the core coverage-puzzle loop; the wider mode, progression and
+social surfaces below remain design targets.
+
+- **Board:** 13×13 grid generated from a seed. Interior blockers are random; a candidate
+  layout is accepted only when every reachable stop can return to the start (so no roll
+  order can strand the player) and at least 80% of the grid is paintable. Cells outside the
+  paintable set render as solid blocks and are excluded from the goal.
+- **Rules:** the roller slides until a wall stops it and paints every tile it crosses. Win
+  is `remaining === 0` with reason `complete`. State is serializable and validated on load.
+- **Scoring:** moves against a par derived from a seeded reference solution, plus a per-seed
+  personal best held in `localStorage`.
+- **Session:** the in-progress maze is saved to `localStorage` and resumed on return.
+  Restart replays the same seed; "New maze" draws a fresh one.
+- **Assists:** unlimited undo and a hint that uses the same legal-action API as play.
+- **Input:** arrow keys, W/A/S/D, U (undo), R (restart), H (hint), on-screen direction
+  buttons, and board swipes. Direction buttons disable when the roll is walled.
+- **Presentation:** Three.js orthographic board with painted tiles raised as well as
+  recoloured; a 2D canvas fallback draws the same board when WebGL is unavailable. A live
+  region mirrors roller position, progress and legal rolls for screen readers.
 
 ## 2. Core game design
 
