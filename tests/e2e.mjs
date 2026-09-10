@@ -29,7 +29,10 @@ const MIME = {
 };
 
 const server = http.createServer((req, res) => {
-  const url = decodeURIComponent(req.url.split('?')[0]);
+  let url = decodeURIComponent(req.url.split('?')[0]);
+  // The same files also answer under /nested/game/ so root-absolute asset
+  // paths (which break when a game is served from a subfolder) fail here.
+  if (url.startsWith('/nested/game/')) url = url.slice('/nested/game'.length);
   const file = path.join(ROOT, url === '/' ? 'index.html' : url);
   if (!file.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
   fs.readFile(file, (e, d) => {
@@ -185,8 +188,36 @@ async function runPass(vpName, viewport, hasTouch) {
   return { responsive, errors };
 }
 
+// Boot without a web server (file://) and from a subfolder: both fail if any
+// asset is referenced by a root-absolute path such as /bundle.js.
+async function bootsAt(url) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(url, { waitUntil: 'load', timeout: 30000 });
+    await page.waitForFunction(() => {
+      const s = window.__paintMaze && window.__paintMaze.state();
+      return !!s && parseInt(document.getElementById('hud-score').textContent, 10) > 0;
+    }, null, { timeout: 10000 });
+    const helpOpen = await page.evaluate(() => document.getElementById('how-to-play').open);
+    if (!helpOpen) throw new Error('How to play is not open for a first-time player');
+    await page.keyboard.press(['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'][
+      await page.evaluate(() => window.__paintMaze.hint())]);
+    await page.waitForFunction(() => window.__paintMaze.state().moves === 1);
+    if (await page.evaluate(() => document.getElementById('how-to-play').open)) {
+      throw new Error('How to play stayed open after the first roll');
+    }
+  } finally {
+    await context.close();
+  }
+}
+
 let exitCode = 0;
 try {
+  await step('boots from a subfolder URL (no root-absolute asset paths)',
+    () => bootsAt(BASE + 'nested/game/index.html'));
+  await step('boots from file:// (index.html opened straight from disk)',
+    () => bootsAt('file://' + path.join(ROOT, 'index.html')));
   const desktop = await runPass('desktop', { width: 1280, height: 800 }, false);
   const mobile = await runPass('mobile', { width: 390, height: 844 }, true);
 

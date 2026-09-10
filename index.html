@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="description" content="Paint Maze — roll a paint ball through a maze until every open tile is covered." />
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.png">
 <title>Paint Maze #55</title>
 <style>
   :root {
@@ -48,7 +49,10 @@
   #overlay h2 { margin: 0 0 .5rem; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
     clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-  details { max-width: 60ch; color: var(--muted); font-size: .92rem; }
+  details { max-width: 60ch; color: var(--muted); font-size: .92rem; background: var(--surface);
+    border: 1px solid #dfe5f0; border-radius: 8px; padding: .2rem .8rem; }
+  details p { margin: .35rem 0; }
+  details b { color: var(--ink); }
   summary { cursor: pointer; min-height: 2rem; }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
@@ -61,7 +65,16 @@
   <span>Par: <b id="hud-par">—</b></span>
   <span>Best: <b id="hud-best">—</b></span>
 </div>
-<p id="status-line" role="status" aria-live="polite"></p>
+<p id="status-line" role="status" aria-live="polite">Loading the maze…</p>
+<details id="how-to-play" open>
+  <summary>How to play</summary>
+  <p><b>Goal:</b> paint every open floor tile. Grey blocks are solid and never need paint.</p>
+  <p><b>Move:</b> press an arrow button, an arrow key or W/A/S/D, or swipe the board. The ball
+  rolls in that direction until it hits a wall, painting every tile it crosses. It cannot stop
+  part-way, so plan each roll. Dimmed arrows are walled off from where the ball sits.</p>
+  <p><b>Assists:</b> Undo (U) takes back a roll, Hint (H) suggests one, Restart (R) replays this
+  maze, New maze draws another. Fewer moves than par is a good score.</p>
+</details>
 <div class="board-wrap">
   <canvas id="game-canvas" width="720" height="720" aria-label="Paint maze board"></canvas>
 </div>
@@ -78,12 +91,6 @@
   <button id="btn-restart" title="Restart this maze (R)">Restart</button>
   <button id="btn-new" title="Generate a new maze">New maze</button>
 </div>
-<details>
-  <summary>How to play</summary>
-  <p>The roller slides until it hits a wall, painting every tile it crosses. Cover all open tiles
-  to finish. Grey blocks are solid and never need paint. Use the arrow keys, W/A/S/D, the on-screen
-  buttons, or swipe the board. U undoes, R restarts, H gives a hint.</p>
-</details>
 <div id="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="overlay-title">
   <div>
     <h2 id="overlay-title">Maze painted!</h2>
@@ -91,7 +98,7 @@
     <button id="btn-overlay-next">New maze</button>
   </div>
 </div>
-<script src="/bundle.js"></script>
+<script src="./bundle.js" onerror="document.getElementById('status-line').textContent = 'The game script (bundle.js) failed to load. Serve this folder over HTTP (npm start) or check the file is present.'"></script>
 <script>if (window.__paintMaze) window.__paintMaze.start();</script>
 </body>
 </html>

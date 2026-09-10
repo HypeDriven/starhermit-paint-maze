@@ -39,6 +39,12 @@ social surfaces below remain design targets.
 - **Assists:** unlimited undo and a hint that uses the same legal-action API as play.
 - **Input:** arrow keys, W/A/S/D, U (undo), R (restart), H (hint), on-screen direction
   buttons, and board swipes. Direction buttons disable when the roll is walled.
+- **Onboarding:** the "How to play" panel sits above the board and starts open; it folds
+  away after the player's first roll (or when a save with moves is restored).
+- **Loading:** every asset is referenced by a relative path so the page boots from the
+  platform origin, a subfolder, or `index.html` opened straight from disk. If the bundle
+  fails to load the status line says so instead of leaving dead controls. `npm start`
+  serves the folder locally.
 - **Presentation:** Three.js orthographic board with painted tiles raised as well as
   recoloured; a 2D canvas fallback draws the same board when WebGL is unavailable. A live
   region mirrors roller position, progress and legal rolls for screen readers.

@@ -5,6 +5,7 @@
   "description": "Paint Maze - 3D maze paint-rolling game (StarHermit #55)",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
+    "start": "node server.js",
     "build": "esbuild main.js --bundle --outfile=bundle.js --format=iife --legal-comments=inline",
     "test:rules": "node tests/rules.test.mjs",
     "test:e2e": "node tests/e2e.mjs",

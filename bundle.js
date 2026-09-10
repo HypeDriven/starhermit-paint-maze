@@ -44310,7 +44310,8 @@ void main() {
           hint: $("btn-hint"),
           restart: $("btn-restart"),
           next: $("btn-new"),
-          overlayNext: $("btn-overlay-next")
+          overlayNext: $("btn-overlay-next"),
+          help: $("how-to-play")
         };
         const ok = render.init(el.canvas);
         if (!ok) showStatus("Graphics could not start on this device.");
@@ -44318,6 +44319,9 @@ void main() {
       }
       function showStatus(text) {
         if (el.status) el.status.textContent = text;
+      }
+      function collapseHelp() {
+        if (el.help) el.help.open = false;
       }
       function stateRef() {
         return _state;
@@ -44405,6 +44409,7 @@ void main() {
         if (!rules.tryRoll(s, d)) return false;
         history.push(snapshot);
         if (history.length > UNDO_LIMIT) history.shift();
+        collapseHelp();
         const gained = rules.painted(s) - before;
         persist();
         render.update(s);
@@ -44527,6 +44532,7 @@ void main() {
         init();
         bind();
         if (restore()) {
+          if (_state.moves > 0 || _state.won) collapseHelp();
           render.update(_state);
           refresh();
           showStatus(_state.won ? "Maze already complete \u2014 start a new one." : "Resumed your saved maze.");

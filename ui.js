@@ -56,7 +56,8 @@ function init() {
 		overlayBody: $('overlay-body'),
 		up: $('btn-up'), down: $('btn-down'), left: $('btn-left'), right: $('btn-right'),
 		undo: $('btn-undo'), hint: $('btn-hint'), restart: $('btn-restart'),
-		next: $('btn-new'), overlayNext: $('btn-overlay-next')
+		next: $('btn-new'), overlayNext: $('btn-overlay-next'),
+		help: $('how-to-play')
 	};
 	const ok = render.init(el.canvas);
 	if (!ok) showStatus('Graphics could not start on this device.');
@@ -64,6 +65,10 @@ function init() {
 }
 
 function showStatus(text) { if (el.status) el.status.textContent = text; }
+
+// The rules panel starts open so a first-time player sees them before the
+// board; once they have rolled (now or in a restored save) it folds away.
+function collapseHelp() { if (el.help) el.help.open = false; }
 
 function stateRef() { return _state; }
 function setState(s) { _state = s; history = []; }
@@ -160,6 +165,7 @@ function tryDirection(d) {
 	if (!rules.tryRoll(s, d)) return false;
 	history.push(snapshot);
 	if (history.length > UNDO_LIMIT) history.shift();
+	collapseHelp();
 	const gained = rules.painted(s) - before;
 	persist();
 	render.update(s);
@@ -286,6 +292,7 @@ function start() {
 	init();
 	bind();
 	if (restore()) {
+		if (_state.moves > 0 || _state.won) collapseHelp();
 		render.update(_state);
 		refresh();
 		showStatus(_state.won ? 'Maze already complete — start a new one.' : 'Resumed your saved maze.');
