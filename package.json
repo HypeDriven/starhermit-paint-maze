@@ -8,8 +8,10 @@
     "start": "node server.js",
     "build": "esbuild main.js --bundle --outfile=bundle.js --format=iife --legal-comments=inline",
     "test:rules": "node tests/rules.test.mjs",
+    "test:platform": "node tests/platform.test.mjs",
     "test:e2e": "node tests/e2e.mjs",
-    "test": "npm run test:rules && npm run test:e2e"
+    "test:hosted": "node tests/hosted.test.mjs",
+    "test": "npm run test:rules && npm run test:platform && npm run test:e2e && npm run test:hosted"
   },
   "dependencies": {
     "esbuild": "^0.28.2",

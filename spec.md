@@ -36,6 +36,12 @@ social surfaces below remain design targets.
   personal best held in `localStorage`.
 - **Session:** the in-progress maze is saved to `localStorage` and resumed on return.
   Restart replays the same seed; "New maze" draws a fresh one.
+- **Hosted (StarHermit):** with a launch token from the `#game_token` URL fragment
+  (read once, then stripped), the HUD shows the account nickname and the
+  personal-best table plus in-progress maze mirror to the platform cloud-save
+  slot (zip+base64, one slot, remote-preferred on conflict, 2 s debounce with a
+  pagehide flush and a visible sync status). `localStorage` remains the offline
+  cache; without a token local play is unchanged.
 - **Assists:** unlimited undo and a hint that uses the same legal-action API as play.
 - **Input:** arrow keys, W/A/S/D, U (undo), R (restart), H (hint), on-screen direction
   buttons, and board swipes. Direction buttons disable when the roll is walled.
@@ -190,7 +196,9 @@ Follow the skill pack's acceptance gate: deterministic seeds, debug views for co
 - `ui`: responsive DOM shell, focus, localization, settings, overlays, accessibility mirror.
 - `audio`: buses, event mapping, focus/background behavior, decode and memory policy.
 - `content`: versioned levels, themes, tutorials, validation metadata.
-- `platform`: token-aware REST/WebSocket adapter, retries, rate-limit handling, telemetry consent.
+- `platform`: token-aware REST adapter — shipped as `js/platform.js`: launch-token
+  fragment handling, Bearer auth with 45-minute refresh, profile nickname, and the
+  cloud-save slot (stored-zip payload).
 
 No module may mutate rules state except through a validated command. Rendering consumes immutable snapshots plus interpolation data. UI state and simulation state are separate so closing a drawer cannot affect a match.
 
@@ -213,16 +221,16 @@ No module may mutate rules state except through a validated command. Rendering c
 
 ### Packaging and launch
 - Ship a browser distribution with `starhermit.txt` at its root, `name=Paint Maze`, and `launch=index.html`. Keep source files, secrets, design documents, and source maps outside the uploaded distribution.
-- Read the game scope from the short-lived launch token rather than hard-coding a slug. Use same-origin `/api` and `/ws` routes when hosted. Refresh account tokens through the host shell; never persist access or launch tokens in local storage.
+- Read the game scope from the short-lived launch token rather than hard-coding a slug. Use same-origin `/api` and `/ws` routes when hosted. The client re-mints the launch token with `POST /api/v1/games/{slug}/launch-token` every 45 minutes; launch tokens are never persisted in storage.
 - Synchronize countdowns and daily boundaries with `GET /api/v1/time` using round-trip-adjusted offset. Treat rate limits and structured `{"error":"..."}` responses as recoverable UI states.
 
 ### Identity, profile, presence, and preferences
-- Support guest practice locally, then offer account sign-in for durable progress. Use the profile display name and avatar only where identity is useful, honor profile privacy, and send throttled presence heartbeats while actively playing.
+- Support guest practice locally, then offer account sign-in for durable progress. Use the profile display name (never the username) where identity is useful and honor profile privacy; the platform exposes no per-game presence endpoint, so the game sends no presence traffic.
 - Store accessibility, audio, graphics tier, tutorial completion, camera preference, and rules options through per-game settings. Declare desktop action bindings and read player overrides; touch mappings remain responsive UI controls.
 - Cloud-save progression as a versioned, checksummed document. Resolve conflicts by preserving both snapshots and asking the player when neither is a strict descendant. Never place credentials or private chat in saves.
 
 ### Discovery, activity, and social layer
-- Start and end launch activity so playtime is accurate. Surface entitlement or catalog state only in host-owned chrome; the game itself must remain playable without promotional interruption.
+- Launch activity start/end has no platform endpoint reachable by launch tokens, so playtime is not reported; surface entitlement or catalog state only in host-owned chrome and keep the game playable without promotional interruption.
 - Provide a compact friends panel for score comparison and invitations where appropriate. Respect presence visibility and do not expose a hidden or private profile through game UI.
 - Do not create gameplay chat or voice surfaces for the initial release; they are not relevant to the core solo loop. Friends-only leaderboard filtering and shareable challenge seeds supply the social layer without unnecessary communication permissions.
 

@@ -44240,6 +44240,285 @@ void main() {
     }
   });
 
+  // platform.js
+  var require_platform = __commonJS({
+    "platform.js"(exports, module) {
+      "use strict";
+      var CRC_TABLE = (() => {
+        const t = new Uint32Array(256);
+        for (let n = 0; n < 256; n++) {
+          let c = n;
+          for (let k = 0; k < 8; k++) c = c & 1 ? 3988292384 ^ c >>> 1 : c >>> 1;
+          t[n] = c >>> 0;
+        }
+        return t;
+      })();
+      function crc32(bytes) {
+        let c = 4294967295;
+        for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 255] ^ c >>> 8;
+        return (c ^ 4294967295) >>> 0;
+      }
+      function zipStore(name, dataBytes) {
+        const enc = new TextEncoder();
+        const nameB = enc.encode(name);
+        const crc = crc32(dataBytes);
+        const out = [];
+        const u16 = (v) => out.push(v & 255, v >> 8 & 255);
+        const u32 = (v) => out.push(v & 255, v >> 8 & 255, v >> 16 & 255, v >>> 24 & 255);
+        u32(67324752);
+        u16(20);
+        u16(0);
+        u16(0);
+        u16(0);
+        u16(0);
+        u32(crc);
+        u32(dataBytes.length);
+        u32(dataBytes.length);
+        u16(nameB.length);
+        u16(0);
+        const local = out.length;
+        const head = new Uint8Array(out);
+        const cd = [];
+        const c16 = (v) => cd.push(v & 255, v >> 8 & 255);
+        const c32 = (v) => cd.push(v & 255, v >> 8 & 255, v >> 16 & 255, v >>> 24 & 255);
+        c32(33639248);
+        c16(20);
+        c16(20);
+        c16(0);
+        c16(0);
+        c16(0);
+        c16(0);
+        c32(crc);
+        c32(dataBytes.length);
+        c32(dataBytes.length);
+        c16(nameB.length);
+        c16(0);
+        c16(0);
+        c16(0);
+        c16(0);
+        c32(0);
+        c32(0);
+        const cdHead = new Uint8Array(cd);
+        const cdOff = head.length + nameB.length + dataBytes.length;
+        const parts = [head, nameB, dataBytes, cdHead, nameB];
+        const eocd = [];
+        const e32 = (v) => eocd.push(v & 255, v >> 8 & 255, v >> 16 & 255, v >>> 24 & 255);
+        const e16 = (v) => eocd.push(v & 255, v >> 8 & 255);
+        e32(101010256);
+        e16(0);
+        e16(0);
+        e16(1);
+        e16(1);
+        e32(cdHead.length + nameB.length);
+        e32(cdOff);
+        e16(0);
+        parts.push(new Uint8Array(eocd));
+        const total = parts.reduce((n, p) => n + p.length, 0);
+        const buf = new Uint8Array(total);
+        let o = 0;
+        for (const p of parts) {
+          buf.set(p, o);
+          o += p.length;
+        }
+        return buf;
+      }
+      function unzipFirstEntry(zipBytes) {
+        const dv = new DataView(zipBytes.buffer, zipBytes.byteOffset, zipBytes.byteLength);
+        let off = 0;
+        while (off + 30 <= zipBytes.length && dv.getUint32(off, true) === 67324752) {
+          const method = dv.getUint16(off + 8, true);
+          const size = dv.getUint32(off + 18, true);
+          const nameLen = dv.getUint16(off + 26, true);
+          const extraLen = dv.getUint16(off + 28, true);
+          const dataOff = off + 30 + nameLen + extraLen;
+          if (method !== 0) throw new Error("unsupported zip entry");
+          return zipBytes.slice(dataOff, dataOff + size);
+        }
+        throw new Error("bad zip");
+      }
+      function bytesToBase64(bytes) {
+        let s = "";
+        for (let i = 0; i < bytes.length; i += 32768)
+          s += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768));
+        return btoa(s);
+      }
+      function base64ToBytes(b64) {
+        const s = atob(b64);
+        const b = new Uint8Array(s.length);
+        for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i);
+        return b;
+      }
+      var REFRESH_MS = 45 * 60 * 1e3;
+      var REFRESH_RETRY_MS = 60 * 1e3;
+      var SAVE_DEBOUNCE_MS = 2e3;
+      var state = {
+        token: null,
+        sub: null,
+        slug: null,
+        hosted: false,
+        refreshTimer: null,
+        saveTimer: null,
+        saveBuilder: null,
+        saving: false,
+        handlers: {}
+      };
+      function readLaunchToken() {
+        const loc = window.location;
+        if (loc.hash) {
+          const token = new URLSearchParams(loc.hash.slice(1)).get("game_token");
+          if (token) {
+            try {
+              history.replaceState(null, "", loc.pathname + loc.search);
+            } catch (e) {
+            }
+            return token;
+          }
+        }
+        if (!/\.starhermit\.com$/i.test(loc.hostname)) {
+          const params = new URLSearchParams(loc.search);
+          return params.get("game_token") || params.get("token") || params.get("launch");
+        }
+        return null;
+      }
+      function decodeJwtPayload(token) {
+        const parts = String(token).split(".");
+        if (parts.length !== 3) return null;
+        try {
+          const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+          const pad = "=".repeat((4 - b64.length % 4) % 4);
+          return JSON.parse(atob(b64 + pad));
+        } catch (e) {
+          return null;
+        }
+      }
+      function api(path, options) {
+        options = options || {};
+        const headers = Object.assign({}, options.headers, { Authorization: "Bearer " + state.token });
+        return fetch(path, Object.assign({}, options, { headers }));
+      }
+      function setSync(status) {
+        if (state.handlers.onSync) state.handlers.onSync(status);
+      }
+      async function loadIdentity() {
+        const fallback = "Player " + String(state.sub || "????????").slice(0, 8);
+        let name = fallback;
+        try {
+          const res = await api("/api/v1/users/" + encodeURIComponent(state.sub) + "/profile");
+          if (res.ok) {
+            const profile = await res.json().catch(() => null);
+            if (profile && typeof profile.nickname === "string" && profile.nickname) name = profile.nickname;
+          }
+        } catch (e) {
+        }
+        if (state.handlers.onName) state.handlers.onName(name);
+      }
+      async function refreshToken() {
+        if (!state.slug) return;
+        try {
+          const res = await api("/api/v1/games/" + encodeURIComponent(state.slug) + "/launch-token", { method: "POST" });
+          if (!res.ok) throw new Error("refresh " + res.status);
+          const data = await res.json().catch(() => null);
+          const token = data && (data.token || data.launchToken || data.access_token);
+          if (!token) throw new Error("refresh: no token in response");
+          state.token = token;
+        } catch (e) {
+          scheduleRefresh(REFRESH_RETRY_MS);
+          return;
+        }
+        scheduleRefresh(REFRESH_MS);
+      }
+      function scheduleRefresh(delay) {
+        if (typeof setTimeout === "undefined") return;
+        if (state.refreshTimer) clearTimeout(state.refreshTimer);
+        state.refreshTimer = setTimeout(refreshToken, delay);
+      }
+      async function loadCloudDoc() {
+        if (!state.slug || !state.handlers.onRemote) return;
+        try {
+          const res = await api("/api/v1/me/cloud-saves/" + encodeURIComponent(state.slug));
+          if (res.status === 404) return;
+          if (!res.ok) throw new Error("cloud load " + res.status);
+          const bytes = new Uint8Array(await res.arrayBuffer());
+          const doc = JSON.parse(new TextDecoder().decode(unzipFirstEntry(bytes)));
+          state.handlers.onRemote(doc);
+        } catch (e) {
+        }
+      }
+      function pushCloud(builder) {
+        if (!state.hosted || !state.slug) return;
+        state.saveBuilder = builder;
+        if (state.saving) return;
+        if (state.saveTimer) clearTimeout(state.saveTimer);
+        state.saveTimer = setTimeout(flushCloud, SAVE_DEBOUNCE_MS);
+      }
+      async function flushCloud() {
+        if (state.saveTimer) {
+          clearTimeout(state.saveTimer);
+          state.saveTimer = null;
+        }
+        if (state.saving || !state.saveBuilder) return;
+        const builder = state.saveBuilder;
+        state.saveBuilder = null;
+        let doc = null;
+        try {
+          doc = builder();
+        } catch (e) {
+          return;
+        }
+        if (!doc) return;
+        state.saving = true;
+        setSync("saving");
+        try {
+          const payload = bytesToBase64(zipStore("save.json", new TextEncoder().encode(JSON.stringify(doc))));
+          const res = await api("/api/v1/me/cloud-saves/" + encodeURIComponent(state.slug), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dataBase64: payload })
+          });
+          if (!res.ok) throw new Error("cloud save " + res.status);
+          setSync("synced");
+        } catch (e) {
+          setSync("error");
+          state.saveBuilder = builder;
+        } finally {
+          state.saving = false;
+        }
+        if (state.saveBuilder) pushCloud(state.saveBuilder);
+      }
+      function boot(handlers) {
+        state.handlers = handlers || {};
+        if (typeof window === "undefined" || typeof document === "undefined") return false;
+        const token = readLaunchToken();
+        if (!token) return false;
+        const payload = decodeJwtPayload(token) || {};
+        state.token = token;
+        state.sub = payload.sub || null;
+        state.slug = payload.game_scope || null;
+        state.hosted = true;
+        if (state.slug) scheduleRefresh(REFRESH_MS);
+        loadIdentity();
+        loadCloudDoc();
+        return true;
+      }
+      if (typeof window !== "undefined" && typeof document !== "undefined") {
+        window.addEventListener("pagehide", flushCloud);
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) flushCloud();
+        });
+      }
+      module.exports = {
+        boot,
+        pushCloud,
+        flushCloud,
+        decodeJwtPayload,
+        zipStore,
+        unzipFirstEntry,
+        bytesToBase64,
+        base64ToBytes
+      };
+    }
+  });
+
   // ui.js
   var require_ui = __commonJS({
     "ui.js"(exports, module) {
@@ -44247,13 +44526,15 @@ void main() {
       var rules = require_rules();
       var render = require_render();
       var audio = require_audio();
+      var platform = require_platform();
       var SAVE_KEY = "paint-maze:v1:save";
       var BEST_KEY = "paint-maze:v1:best";
+      var CLOUD_KEY = "paint-maze:v1:cloud";
       var UNDO_LIMIT = 200;
       var DIR_NAME = ["up", "right", "down", "left"];
       var el = {};
       var _state = null;
-      var history = [];
+      var history2 = [];
       var started = false;
       function $(id) {
         return document.getElementById(id);
@@ -44288,7 +44569,61 @@ void main() {
         if (!Number.isFinite(prev) || state.moves < prev) {
           scores[state.seedStr] = state.moves;
           store(BEST_KEY, JSON.stringify(scores));
+          noteCloudChange();
+          platform.pushCloud(buildCloudDoc);
         }
+      }
+      function cloudUpdatedAt() {
+        try {
+          const v = JSON.parse(load(CLOUD_KEY) || "{}").updatedAt;
+          return Number.isFinite(v) ? v : 0;
+        } catch (e) {
+          return 0;
+        }
+      }
+      function noteCloudChange(stamp) {
+        if (stamp === false) return;
+        store(CLOUD_KEY, JSON.stringify({ updatedAt: Date.now() }));
+      }
+      function buildCloudDoc() {
+        return { schema: 1, updatedAt: Date.now(), best: bestScores(), save: load(SAVE_KEY) || null };
+      }
+      function applyCloudDoc(doc) {
+        if (!doc || typeof doc !== "object" || !Number.isFinite(doc.updatedAt)) return false;
+        const hasLocal = !!load(SAVE_KEY);
+        if (hasLocal ? !(doc.updatedAt > cloudUpdatedAt()) : typeof doc.save !== "string") return false;
+        if (doc.best && typeof doc.best === "object" && !Array.isArray(doc.best)) {
+          const best = {};
+          for (const seed of Object.keys(doc.best)) {
+            if (Number.isFinite(doc.best[seed])) best[seed] = doc.best[seed];
+          }
+          store(BEST_KEY, JSON.stringify(best));
+        }
+        let replaced = false;
+        if (typeof doc.save === "string") {
+          const remote = rules.deserialize(doc.save);
+          if (remote) {
+            store(SAVE_KEY, doc.save);
+            setState(remote);
+            replaced = true;
+          }
+        }
+        store(CLOUD_KEY, JSON.stringify({ updatedAt: doc.updatedAt }));
+        if (replaced) {
+          render.update(_state);
+          if (_state.moves > 0 || _state.won) collapseHelp();
+          refresh();
+          showStatus(_state.won ? "Maze already complete \u2014 start a new one." : "Resumed your saved maze.");
+          if (_state.won) showOverlay("Maze painted!", `${_state.goal} tiles in ${_state.moves} moves.`);
+        }
+        return replaced;
+      }
+      function showSync(status) {
+        if (!el.sync || !el.syncWrap) return;
+        const labels = { saving: "Saving\u2026", synced: "Synced", error: "Sync error" };
+        const label = labels[status] || "";
+        el.sync.textContent = label;
+        el.syncWrap.hidden = !label;
       }
       function init() {
         el = {
@@ -44297,6 +44632,10 @@ void main() {
           moves: $("hud-moves"),
           par: $("hud-par"),
           best: $("hud-best"),
+          player: $("hud-player"),
+          playerWrap: $("hud-player-wrap"),
+          sync: $("hud-sync"),
+          syncWrap: $("hud-sync-wrap"),
           status: $("status-line"),
           board: $("board-description"),
           overlay: $("overlay"),
@@ -44328,7 +44667,7 @@ void main() {
       }
       function setState(s) {
         _state = s;
-        history = [];
+        history2 = [];
       }
       function randomSeed() {
         return "pm-" + Date.now().toString(36) + "-" + Math.floor(Math.random() * 1e6).toString(36);
@@ -44342,7 +44681,10 @@ void main() {
         showStatus("Roll the paint ball to cover every open floor tile.");
       }
       function persist() {
+        const hadData = !!load(SAVE_KEY) || cloudUpdatedAt() > 0;
         if (_state) store(SAVE_KEY, rules.serialize(_state));
+        noteCloudChange(hadData);
+        platform.pushCloud(buildCloudDoc);
       }
       function restore() {
         const saved = rules.deserialize(load(SAVE_KEY));
@@ -44367,7 +44709,7 @@ void main() {
         const best = bestFor(s.seedStr);
         if (el.best) el.best.textContent = best === null ? "\u2014" : String(best);
         if (el.board) el.board.textContent = describeBoard();
-        if (el.undo) el.undo.disabled = history.length === 0;
+        if (el.undo) el.undo.disabled = history2.length === 0;
         for (let d = 0; d < 4; d++) {
           const btn = [el.up, el.right, el.down, el.left][d];
           if (!btn) continue;
@@ -44407,8 +44749,8 @@ void main() {
         const snapshot = rules.serialize(s);
         const before = rules.painted(s);
         if (!rules.tryRoll(s, d)) return false;
-        history.push(snapshot);
-        if (history.length > UNDO_LIMIT) history.shift();
+        history2.push(snapshot);
+        if (history2.length > UNDO_LIMIT) history2.shift();
         collapseHelp();
         const gained = rules.painted(s) - before;
         persist();
@@ -44423,8 +44765,8 @@ void main() {
         return true;
       }
       function undo() {
-        if (history.length === 0) return false;
-        const prev = rules.deserialize(history.pop());
+        if (history2.length === 0) return false;
+        const prev = rules.deserialize(history2.pop());
         if (!prev) return false;
         _state = prev;
         persist();
@@ -44540,6 +44882,16 @@ void main() {
         } else {
           startGame(randomSeed());
         }
+        platform.boot({
+          onName: (name) => {
+            if (el.player) el.player.textContent = name;
+            if (el.playerWrap) el.playerWrap.hidden = false;
+          },
+          onSync: showSync,
+          onRemote: (doc) => {
+            applyCloudDoc(doc);
+          }
+        });
         render.resize();
         render.start();
       }

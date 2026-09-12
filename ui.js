@@ -4,9 +4,11 @@
 const rules = require('./rules');
 const render = require('./render');
 const audio = require('./audio');
+const platform = require('./platform');
 
 const SAVE_KEY = 'paint-maze:v1:save';
 const BEST_KEY = 'paint-maze:v1:best';
+const CLOUD_KEY = 'paint-maze:v1:cloud';
 const UNDO_LIMIT = 200;
 const DIR_NAME = ['up', 'right', 'down', 'left'];
 
@@ -39,7 +41,74 @@ function recordBest(state) {
 	if (!Number.isFinite(prev) || state.moves < prev) {
 		scores[state.seedStr] = state.moves;
 		store(BEST_KEY, JSON.stringify(scores));
+		noteCloudChange();
+		platform.pushCloud(buildCloudDoc);
 	}
+}
+
+// ---- cloud document -------------------------------------------------------
+// One doc mirrors the local cache: the personal-best table, the in-progress
+// maze and a timestamp. When local and remote disagree the newer copy wins
+// (the remote on first hosted launch, otherwise whichever last persisted).
+
+function cloudUpdatedAt() {
+	try {
+		const v = JSON.parse(load(CLOUD_KEY) || '{}').updatedAt;
+		return Number.isFinite(v) ? v : 0;
+	} catch (e) { return 0; }
+}
+
+// Stamp the local clock. The first maze written into an empty cache does not
+// stamp: it must not outrank a remote doc this device has not seen yet.
+function noteCloudChange(stamp) {
+	if (stamp === false) return;
+	store(CLOUD_KEY, JSON.stringify({ updatedAt: Date.now() }));
+}
+
+function buildCloudDoc() {
+	return { schema: 1, updatedAt: Date.now(), best: bestScores(), save: load(SAVE_KEY) || null };
+}
+
+// Apply a remote doc. The remote copy wins when it is newer than the local
+// cache, or when the cache holds no in-progress maze at all (first hosted
+// launch on this device). Returns true when the live state was replaced.
+function applyCloudDoc(doc) {
+	if (!doc || typeof doc !== 'object' || !Number.isFinite(doc.updatedAt)) return false;
+	const hasLocal = !!load(SAVE_KEY);
+	if (hasLocal ? !(doc.updatedAt > cloudUpdatedAt()) : typeof doc.save !== 'string') return false;
+	if (doc.best && typeof doc.best === 'object' && !Array.isArray(doc.best)) {
+		const best = {};
+		for (const seed of Object.keys(doc.best)) {
+			if (Number.isFinite(doc.best[seed])) best[seed] = doc.best[seed];
+		}
+		store(BEST_KEY, JSON.stringify(best));
+	}
+	let replaced = false;
+	if (typeof doc.save === 'string') {
+		const remote = rules.deserialize(doc.save);
+		if (remote) {
+			store(SAVE_KEY, doc.save);
+			setState(remote);
+			replaced = true;
+		}
+	}
+	store(CLOUD_KEY, JSON.stringify({ updatedAt: doc.updatedAt }));
+	if (replaced) {
+		render.update(_state);
+		if (_state.moves > 0 || _state.won) collapseHelp();
+		refresh();
+		showStatus(_state.won ? 'Maze already complete — start a new one.' : 'Resumed your saved maze.');
+		if (_state.won) showOverlay('Maze painted!', `${_state.goal} tiles in ${_state.moves} moves.`);
+	}
+	return replaced;
+}
+
+function showSync(status) {
+	if (!el.sync || !el.syncWrap) return;
+	const labels = { saving: 'Saving…', synced: 'Synced', error: 'Sync error' };
+	const label = labels[status] || '';
+	el.sync.textContent = label;
+	el.syncWrap.hidden = !label;
 }
 
 function init() {
@@ -49,6 +118,10 @@ function init() {
 		moves: $('hud-moves'),
 		par: $('hud-par'),
 		best: $('hud-best'),
+		player: $('hud-player'),
+		playerWrap: $('hud-player-wrap'),
+		sync: $('hud-sync'),
+		syncWrap: $('hud-sync-wrap'),
 		status: $('status-line'),
 		board: $('board-description'),
 		overlay: $('overlay'),
@@ -87,7 +160,10 @@ function startGame(seedStr) {
 }
 
 function persist() {
+	const hadData = !!load(SAVE_KEY) || cloudUpdatedAt() > 0;
 	if (_state) store(SAVE_KEY, rules.serialize(_state));
+	noteCloudChange(hadData);
+	platform.pushCloud(buildCloudDoc);
 }
 
 function restore() {
@@ -300,6 +376,16 @@ function start() {
 	} else {
 		startGame(randomSeed());
 	}
+	// Hosted mode starts only when a launch token was read; everything here
+	// no-ops for local players.
+	platform.boot({
+		onName: (name) => {
+			if (el.player) el.player.textContent = name;
+			if (el.playerWrap) el.playerWrap.hidden = false;
+		},
+		onSync: showSync,
+		onRemote: (doc) => { applyCloudDoc(doc); }
+	});
 	render.resize();
 	render.start();
 }
