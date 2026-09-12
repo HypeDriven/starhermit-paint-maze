@@ -101,6 +101,20 @@
   </div>
 </div>
 <script src="./bundle.js" onerror="document.getElementById('status-line').textContent = 'The game script (bundle.js) failed to load. Serve this folder over HTTP (npm start) or check the file is present.'"></script>
-<script>if (window.__paintMaze) window.__paintMaze.start();</script>
+<script>
+  // Explicit startup: a missing or stale bundle is reported on screen instead
+  // of leaving a silent blank board.
+  if (window.__paintMaze && typeof window.__paintMaze.start === 'function') {
+    try { window.__paintMaze.start(); }
+    catch (err) {
+      var s = document.getElementById('status-line');
+      if (s) s.textContent = 'The game failed to start: ' + (err && err.message ? err.message : err);
+      throw err;
+    }
+  } else {
+    var sl = document.getElementById('status-line');
+    if (sl) sl.textContent = 'The game script loaded without its start entry point. This build is incomplete — reload, or rebuild bundle.js (npm run build).';
+  }
+</script>
 </body>
 </html>
