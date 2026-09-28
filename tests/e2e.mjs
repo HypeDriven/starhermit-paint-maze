@@ -11,7 +11,9 @@
  * arrow keys and on-screen direction buttons (the direction to press comes from
  * the in-page hint API, but every input is a genuine key press or click), the
  * win overlay, undo, restart, save/resume across a reload, and touch-target
- * sizes on a phone viewport. Fails on any non-benign console/page error.
+ * sizes on a phone viewport, and the Settings → Graphics panel (presets, an
+ * override, persistence across reload). Fails on any non-benign console
+ * error/warning or page error.
  */
 import http from 'node:http';
 import fs from 'node:fs';
@@ -51,7 +53,7 @@ const SHOT = (stage, vp) => `/tmp/paint-maze-e2e-${stage}-${vp}.png`;
 
 const browser = await chromium.launch({
   executablePath: '/usr/bin/google-chrome',
-  args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
+  args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
 
 const step = async (name, fn) => {
@@ -73,7 +75,7 @@ async function runPass(vpName, viewport, hasTouch) {
   const errors = [];
   page.on('pageerror', (e) => { if (!browserNoise.test(e.message)) errors.push(`pageerror: ${e.message}`); });
   page.on('console', (m) => {
-    if (m.type() === 'error' && !browserNoise.test(m.text())) errors.push(`console: ${m.text()}`);
+    if ((m.type() === 'error' || m.type() === 'warning') && !browserNoise.test(m.text())) errors.push(`console ${m.type()}: ${m.text()}`);
   });
 
   let responsive = false;
@@ -176,6 +178,67 @@ async function runPass(vpName, viewport, hasTouch) {
       await page.waitForFunction(() => window.__paintMaze.state().moves === 0);
       const restarted = await page.evaluate(() => window.__paintMaze.state().seedStr);
       if (restarted !== before.seed) throw new Error('restart changed the maze seed');
+    });
+
+    await step(`${vpName}: Settings → Graphics opens, fits and swallows game keys`, async () => {
+      const btn = page.locator('#btn-settings');
+      const bb = await btn.boundingBox();
+      if (!bb || bb.width < 44 || bb.height < 44) throw new Error(`settings button too small: ${JSON.stringify(bb)}`);
+      if (hasTouch) await btn.tap(); else await btn.click();
+      await page.waitForSelector('#settings', { state: 'visible' });
+      const sheet = await page.locator('#settings .sheet').boundingBox();
+      if (sheet.x < 0 || sheet.y < 0 || sheet.x + sheet.width > viewport.width + 1 || sheet.y + sheet.height > viewport.height + 1) {
+        throw new Error(`settings panel overflows the ${vpName} viewport: ${JSON.stringify(sheet)}`);
+      }
+      const moves = await page.evaluate(() => window.__paintMaze.state().moves);
+      await page.keyboard.press('ArrowLeft');
+      await page.keyboard.press('ArrowRight');
+      if (await page.evaluate(() => window.__paintMaze.state().moves) !== moves) throw new Error('game moved while settings were open');
+      const auto = await page.locator('#gfx-preset option[value="auto"]').textContent();
+      if (!/Auto \(detected: \w+\)/.test(auto)) throw new Error(`auto label: ${auto}`);
+    });
+
+    await step(`${vpName}: graphics presets and overrides apply live`, async () => {
+      const preset = () => page.evaluate(() => [document.body.dataset.gfxPreset, document.getElementById('game-canvas').dataset.gfxPreset]);
+      for (const p of ['low', 'ultra', 'high']) {
+        await page.selectOption('#gfx-preset', p);
+        await page.waitForFunction((want) => document.body.dataset.gfxPreset === want, p);
+        const [body, canvas] = await preset();
+        if (body !== p || canvas !== p) throw new Error(`preset ${p} not applied: body=${body} canvas=${canvas}`);
+        await page.waitForTimeout(400); // let the post chain for this preset render a few frames
+      }
+      await page.waitForFunction(() => /2048² shadows/.test(document.getElementById('gfx-summary').textContent));
+      await page.selectOption('#gfx-bloom', 'off');
+      await page.waitForFunction(() => !/bloom/.test(document.getElementById('gfx-summary').textContent));
+      await page.locator('#gfx-fps').check();
+      await page.waitForSelector('#fps-meter', { state: 'visible' });
+      await page.screenshot({ path: SHOT('graphics', vpName) });
+      // Choosing a preset clears overrides.
+      await page.selectOption('#gfx-preset', 'balanced');
+      if (await page.inputValue('#gfx-bloom') !== 'preset') throw new Error('preset change kept the bloom override');
+      await page.selectOption('#gfx-preset', 'high');
+      await page.selectOption('#gfx-bloom', 'off');
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('#settings', { state: 'hidden' });
+      if (await page.evaluate(() => document.activeElement && document.activeElement.id) !== 'btn-settings') {
+        throw new Error('focus did not return to the Settings button');
+      }
+    });
+
+    await step(`${vpName}: graphics settings survive a reload`, async () => {
+      await page.reload({ waitUntil: 'load' });
+      await page.waitForFunction(() => !!(window.__paintMaze && window.__paintMaze.state()));
+      const canvas = await page.evaluate(() => document.getElementById('game-canvas').dataset.gfxPreset);
+      if (canvas !== 'high') throw new Error(`preset after reload: ${canvas}`);
+      await page.locator('#btn-settings').click();
+      if (await page.inputValue('#gfx-preset') !== 'high') throw new Error('preset select not restored');
+      if (await page.inputValue('#gfx-bloom') !== 'off') throw new Error('bloom override not restored');
+      if (!(await page.locator('#gfx-fps').isChecked())) throw new Error('frame-rate toggle not restored');
+      await page.waitForTimeout(500);
+      await page.locator('#btn-settings-close').click();
+      await page.waitForSelector('#settings', { state: 'hidden' });
+      // Leave the default (Auto) behind for later runs.
+      await page.evaluate(() => localStorage.removeItem('paint-maze:v1:graphics'));
     });
 
     if (errors.length) {

@@ -5,6 +5,7 @@ const rules = require('./rules');
 const render = require('./render');
 const audio = require('./audio');
 const platform = require('./platform');
+const settings = require('./settings');
 
 const SAVE_KEY = 'paint-maze:v1:save';
 const BEST_KEY = 'paint-maze:v1:best';
@@ -134,6 +135,7 @@ function init() {
 	};
 	const ok = render.init(el.canvas);
 	if (!ok) showStatus('Graphics could not start on this device.');
+	settings.init();
 	return ok;
 }
 
@@ -295,6 +297,7 @@ function hint() {
 }
 
 function onKey(e) {
+	if (settings.onKey(e)) return;
 	if (e.metaKey || e.ctrlKey || e.altKey) return;
 	const k = e.key;
 	let handled = true;

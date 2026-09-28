@@ -26,7 +26,7 @@
   #hud b { color: var(--ink); font-variant-numeric: tabular-nums; }
   #status-line { text-align: center; min-height: 1.4em; margin: 0; font-weight: 600; max-width: 60ch; }
   .board-wrap { position: relative; width: 100%; max-width: min(94vw, 64vh); }
-  canvas#game-canvas { display: block; width: 100%; aspect-ratio: 1 / 1; background: #eef1f8;
+  canvas#game-canvas { display: block; width: 100%; aspect-ratio: 1 / 1; background: #e4e9f3;
     border-radius: 10px; touch-action: none; box-shadow: 0 6px 20px rgba(30, 45, 80, .12); }
   #controls { display: grid; grid-template-columns: repeat(3, 3rem); grid-template-rows: repeat(2, 3rem);
     gap: .4rem; justify-content: center; }
@@ -54,11 +54,50 @@
   details p { margin: .35rem 0; }
   details b { color: var(--ink); }
   summary { cursor: pointer; min-height: 2rem; }
+  #topbar { position: relative; width: 100%; max-width: min(94vw, 64vh, 40rem); display: flex;
+    justify-content: center; align-items: center; min-height: 3rem; }
+  #btn-settings { position: absolute; right: 0; top: 50%; transform: translateY(-50%); padding: 0;
+    width: 3rem; display: grid; place-items: center; background: var(--surface); color: var(--ink);
+    border-color: #c3ccdd; }
+  .modal[hidden] { display: none; }
+  .modal { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+    background: rgba(20, 28, 46, .55); padding: max(.75rem, env(safe-area-inset-top)) .75rem max(.75rem, env(safe-area-inset-bottom)); }
+  .modal .sheet { background: var(--surface); border-radius: 12px; padding: 1rem 1.25rem; width: min(26rem, 100%);
+    max-height: calc(100dvh - 1.5rem); overflow-y: auto; overscroll-behavior: contain;
+    box-shadow: 0 12px 40px rgba(20, 28, 46, .3); }
+  .modal h2 { margin: 0 0 .25rem; font-size: 1.2rem; }
+  .modal h3 { margin: .5rem 0 .4rem; font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .field { display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+    padding: .3rem 0; border-bottom: 1px solid #eef1f6; }
+  .field label { flex: 1 1 auto; min-width: 0; }
+  .field select { font: inherit; min-height: 2.75rem; max-width: 58%; padding: .3rem .4rem; border-radius: 8px;
+    border: 1px solid #c3ccdd; background: #fff; color: var(--ink); }
+  .field .range { display: flex; align-items: center; gap: .5rem; flex: 0 1 58%; min-width: 0; }
+  .field input[type=range] { flex: 1 1 auto; min-width: 0; min-height: 2.75rem; accent-color: var(--accent); }
+  .field output { min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
+  .field.check input { width: 1.5rem; height: 1.5rem; margin: .6rem .25rem; accent-color: var(--accent); }
+  .field select:focus-visible, .field input:focus-visible { outline: 3px solid #14315c; outline-offset: 2px; }
+  @media (max-width: 30rem) {
+    .field:not(.check) { flex-wrap: wrap; gap: .2rem .75rem; }
+    .field:not(.check) select, .field .range { flex: 1 1 100%; max-width: 100%; }
+  }
+  #gfx-summary { font-size: .85rem; color: var(--muted); margin: .6rem 0 .2rem; overflow-wrap: anywhere; }
+  #gfx-post-note { font-size: .85rem; color: #8a3b00; margin: .2rem 0; }
+  #btn-settings-close { width: 100%; margin-top: .6rem; }
+  #fps-meter { position: fixed; left: .5rem; bottom: max(.5rem, env(safe-area-inset-bottom)); z-index: 10;
+    pointer-events: none; font: 600 .8rem/1 ui-monospace, monospace; color: #fff; background: rgba(20, 28, 46, .7);
+    padding: .3rem .45rem; border-radius: 6px; }
+  #fps-meter[hidden] { display: none; }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
-<h1>Paint Maze</h1>
+<header id="topbar">
+  <h1>Paint Maze</h1>
+  <button id="btn-settings" type="button" aria-haspopup="dialog" aria-controls="settings" aria-label="Settings" title="Settings">
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5ZM13 15.5A3.5 3.5 0 1 1 13 8.5a3.5 3.5 0 0 1 0 7Z" transform="translate(-1 0)"/></svg>
+  </button>
+</header>
 <div id="hud">
   <span>Left: <b id="hud-score">—</b></span>
   <span>Moves: <b id="hud-moves">—</b></span>
@@ -98,6 +137,18 @@
     <h2 id="overlay-title">Maze painted!</h2>
     <p id="overlay-body"></p>
     <button id="btn-overlay-next">New maze</button>
+  </div>
+</div>
+<div id="settings" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+  <div class="sheet">
+    <h2 id="settings-title">Settings</h2>
+    <section aria-labelledby="settings-graphics-title">
+      <h3 id="settings-graphics-title">Graphics</h3>
+      <div id="gfx-fields"></div>
+      <p id="gfx-summary" aria-live="polite"></p>
+      <p id="gfx-post-note" hidden></p>
+    </section>
+    <button id="btn-settings-close" type="button">Close</button>
   </div>
 </div>
 <script src="./bundle.js" onerror="document.getElementById('status-line').textContent = 'The game script (bundle.js) failed to load. Serve this folder over HTTP (npm start) or check the file is present.'"></script>

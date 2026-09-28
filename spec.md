@@ -54,6 +54,31 @@ social surfaces below remain design targets.
 - **Presentation:** Three.js orthographic board with painted tiles raised as well as
   recoloured; a 2D canvas fallback draws the same board when WebGL is unavailable. A live
   region mirrors roller position, progress and legal rolls for screen readers.
+- **Graphics:** the board rests on a slate base plate on a lightly mottled tabletop, lit by a
+  hemisphere sky fill and a warm key light, with PBR materials and neutral tone mapping so
+  the gameplay colours (blue paint, pale open tiles, grey blocks, dark walls) stay true.
+  Optional effects: key-light shadows (a shadow box fitted to the board; a soft blob
+  shadow grounds the ball when shadows are off; raised blocks do not cast, so shaded
+  tiles never read as blocks), GTAO ambient occlusion, bloom limited to highlights (HDR
+  clamped first so reflected lights cannot smear), a colour grade with a light vignette,
+  FXAA/SMAA/MSAA, image-based reflections from a procedural room applied per material
+  (clear-coated paint and ball catch highlights while face-on tiles keep their colour),
+  surface detail (bevelled tiles and plate, mottled tile/block/table textures, a striped
+  ball that visibly rolls), paint splashes (droplets thrown from each tile as the ball
+  paints it) and board animation (tiles pop up as the ball passes, the resting ball bobs
+  gently). Reduced motion turns splashes and animation off. The header's gear button
+  opens **Settings**, whose **Graphics** section offers a quality preset (Auto, chosen
+  from the detected GPU where software renderers get Low and touch devices are capped at
+  Balanced; Low; Balanced; High; Ultra), a render scale (50–200% of the preset's; the
+  device pixel ratio is capped at 1 / 1.5 / 2 by preset), a per-effect override for each
+  option ("From preset (…)" by default; choosing a preset clears overrides), adaptive
+  resolution (steps the resolution down to 60% when frames are slow and back up when
+  fast) and a frame-rate readout, plus a summary with the GPU name, cost and pixel size.
+  Changes apply immediately and persist in `localStorage` (`paint-maze:v1:graphics`);
+  the panel's strings follow the browser language (en-US, en-GB, es-419, es-ES, de-DE,
+  fr-FR, fr-CA, pt-BR, it-IT). The Low preset renders without post-processing and only
+  while something moves; if post-processing cannot be built the game renders without
+  it and the panel says so.
 
 ## 2. Core game design
 
@@ -192,7 +217,14 @@ Follow the skill pack's acceptance gate: deterministic seeds, debug views for co
 - `bootstrap`: host handshake, capability detection, asset manifest, lifecycle.
 - `rules`: pure deterministic state transitions, legality, scoring, seeded random stream.
 - `session`: local or hosted commands, snapshots, prediction policy, reconnect, replay.
-- `render`: Three.js scene graph, semantic entity views, camera, lighting, VFX, quality.
+- `render`: Three.js scene graph, semantic entity views, camera, lighting, VFX, quality
+  — shipped as `render.js` (ES module; post-processing and helpers come from the same
+  three.js revision's `three/addons`, bundled by esbuild into `bundle.js`).
+- `gfx`: pure graphics quality model — shipped as `gfx.js`: presets, per-category
+  overrides, GPU detection, `resolve()`, `presetTier()`, `describe()` (tested by
+  `tests/gfx.test.mjs`).
+- `settings`: the Settings dialog and its localized Graphics section — shipped as
+  `settings.js`.
 - `ui`: responsive DOM shell, focus, localization, settings, overlays, accessibility mirror.
 - `audio`: buses, event mapping, focus/background behavior, decode and memory policy.
 - `content`: versioned levels, themes, tutorials, validation metadata.
