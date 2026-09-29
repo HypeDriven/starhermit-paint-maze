@@ -1,0 +1,11 @@
+# file | description | usage | event id (src/audio.js SFX)
+roller-slide.opus | A foam paint roller gliding over plaster, short even rolling stroke | the ball starts a roll | roll
+ball-stop.opus | A glass marble knocking softly against a wooden wall and settling | a roll ends without painting new tiles; volume slider preview | stop
+wall-bump.opus | A rubber ball bumping a hollow wooden partition, dampened thud | a roll into an adjacent wall (blocked) | bump
+paint-splatter.opus | Wet droplets of thick paint splattering onto a board | a roll ends having painted new tiles | splat
+marble-whoosh.opus | A small marble darting through a corridor, quick airy whoosh | undo | undo
+paint-swipe.opus | A wide wet paintbrush swiping a glossy stripe of paint | hint shown | hint
+level-complete.opus | Ascending sparkle of tuned percussion ending on a clear high tone | level painted | complete
+win-chime.opus | A bright three-note mallet chime rising in pitch | three-star finish (layered after complete) | perfect
+paint-finale.opus | A splash of paint followed by shimmering confetti-like glass tones | last level of a world painted | world
+victory-fanfare.opus | A short cheerful fanfare of bells with a warm brass swell | final level of the game painted | finale

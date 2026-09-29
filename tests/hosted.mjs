@@ -110,27 +110,26 @@ try {
 	await page.goto(BASE, { waitUntil: 'load' });
 	await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* ignore */ } });
 	await launch();
-	await page.waitForFunction(() => window.__paintMaze && window.__paintMaze.state(), null, { timeout: 10000 });
+	await page.waitForSelector('body[data-ready="true"]', { timeout: 10000 });
 
 	const hashNow = await page.evaluate(() => location.hash);
 	check('fragment stripped after read', hashNow === '', hashNow);
 
-	await page.waitForFunction(() => !document.getElementById('hud-player-wrap').hidden, null, { timeout: 10000 });
-	const player = await page.evaluate(() => document.getElementById('hud-player').textContent);
-	check('nickname shown in HUD', player === 'MazePainter', player);
-	const hudText = await page.evaluate(() => document.getElementById('hud').textContent);
-	check('username never displayed', !hudText.includes('should_not_appear'));
+	await page.waitForFunction(() => !document.getElementById('hello').hidden, null, { timeout: 10000 });
+	const hello = await page.textContent('#hello');
+	check('nickname shown on the title screen', hello.includes('MazePainter'), hello);
+	check('username never displayed', !(await page.textContent('body')).includes('should_not_appear'));
 
-	// One move queues a cloud save (2 s debounce) and the sync line reports it.
-	await page.evaluate(() => {
-		const d = window.__paintMaze.hint();
-		document.getElementById(['btn-up', 'btn-right', 'btn-down', 'btn-left'][d]).click();
-	});
-	await page.waitForFunction(() => document.getElementById('hud-sync').textContent === 'Synced', null, { timeout: 10000 });
-	check('sync status visible and reaches Synced', await page.evaluate(() => !document.getElementById('hud-sync-wrap').hidden));
+	// One roll through the visible arrows queues a cloud save (2 s debounce); the sync pill reports it.
+	await page.click('#btn-play');
+	await page.waitForSelector('#screen-game.active');
+	await page.click('.dir[data-dir="R"]');
+	await page.waitForFunction(() => document.body.dataset.moves === '1');
+	await page.waitForFunction(() => document.getElementById('sync').dataset.status === 'synced', null, { timeout: 10000 });
+	check('sync status shown and reaches synced', true);
 
 	const put = calls.find((c) => c.method === 'PUT' && c.url === '/api/v1/me/cloud-saves/paint-maze');
-	check('cloud save PUT issued to the gameKey slot', !!put);
+	check('cloud save PUT issued to the game slot', !!put);
 	check('Bearer on cloud PUT', !!put && put.auth === 'Bearer ' + jwt, put && put.auth);
 	check('cloud save carries a zip payload', !!cloudZip && cloudZip.length > 30);
 
@@ -138,18 +137,15 @@ try {
 	check('profile fetched from /users/{sub}', !!prof);
 	check('no /api/v1/me identity or achievement calls', !calls.some((c) => c.url === '/api/v1/me' || c.url.startsWith('/api/v1/me/achievements')));
 
-	const before = await page.evaluate(() => ({ moves: window.__paintMaze.state().moves, seed: window.__paintMaze.state().seedStr }));
-	check('a move was made for the save', before.moves > 0);
-
-	// Second launch with the local cache wiped: the remote doc must win.
+	// Second launch with the local cache wiped: the remote doc restores the level in progress.
 	await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* ignore */ } });
 	calls.length = 0;
 	await launch();
-	await page.waitForFunction((b) => {
-		const s = window.__paintMaze && window.__paintMaze.state();
-		return !!s && s.moves === b.moves && s.seedStr === b.seed;
-	}, before, { timeout: 10000 });
-	check('remote-preferred restore applied', true);
+	await page.waitForSelector('body[data-ready="true"]');
+	await page.waitForFunction(() => document.getElementById('btn-play').textContent === 'Continue', null, { timeout: 10000 });
+	// Level 1 is a single roll, so the save holds a finished level worth 3 stars.
+	await page.waitForFunction(() => /^3 \//.test(document.getElementById('title-stars').textContent), null, { timeout: 10000 });
+	check('remote save restored progress (3 stars)', true);
 
 	check('no console/page errors in hosted mode', errors.length === 0, errors.join(' | '));
 	await context.close();

@@ -1,23 +1,16 @@
 {
   "name": "paint-maze",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Paint Maze - 3D maze paint-rolling game (StarHermit #55)",
+  "type": "module",
+  "description": "Paint Maze - roll a paint ball through corridor mazes until every tile is painted (StarHermit #55)",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
-    "start": "node server.js",
-    "build": "esbuild main.js --bundle --outfile=bundle.js --format=iife --legal-comments=inline",
-    "test:rules": "node tests/rules.test.mjs",
-    "test:gfx": "node --test tests/gfx.test.mjs",
-    "test:platform": "node tests/platform.test.mjs",
+    "start": "node tools/serve.mjs",
+    "levels": "node tools/generate-levels.mjs",
+    "test": "node --test tests/*.test.mjs",
     "test:e2e": "node tests/e2e.mjs",
-    "test:hosted": "node tests/hosted.test.mjs",
-    "test": "npm run test:rules && npm run test:gfx && npm run test:platform && npm run test:e2e && npm run test:hosted"
-  },
-  "dependencies": {
-    "esbuild": "^0.28.2",
-    "three": "^0.185.1",
-    "ws": "^8.21.3"
+    "test:hosted": "node tests/hosted.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.62.1"

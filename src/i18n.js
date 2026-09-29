@@ -1,0 +1,233 @@
+// UI strings for the nine supported locales. `t(key, vars)` fills {name} slots.
+
+export const LOCALES = ['en-US', 'en-GB', 'es-419', 'es-ES', 'de-DE', 'fr-FR', 'fr-CA', 'pt-BR', 'it-IT'];
+export const LOCALE_NAMES = {
+  'en-US': 'English (US)', 'en-GB': 'English (UK)', 'es-419': 'Español (Latinoamérica)', 'es-ES': 'Español (España)',
+  'de-DE': 'Deutsch', 'fr-FR': 'Français (France)', 'fr-CA': 'Français (Canada)', 'pt-BR': 'Português (Brasil)', 'it-IT': 'Italiano',
+};
+
+const en = {
+  tagline: 'Roll the paint. Cover every tile.',
+  play: 'Play', continue: 'Continue', levels: 'Levels', settings: 'Settings', howTo: 'How to play',
+  back: 'Back', close: 'Close', done: 'Done', menu: 'Menu',
+  'world.studio': 'Studio', 'world.gallery': 'Gallery', 'world.workshop': 'Workshop', 'world.atelier': 'Atelier',
+  level: 'Level {n}', levelOf: '{world} · {n}', moves: 'Moves', par: 'Par', best: 'Best', left: 'Left',
+  starsTotal: '{n} / {total} stars', locked: 'Locked', worldLocked: 'Earn {n} stars to open',
+  undo: 'Undo', restart: 'Restart', hint: 'Hint',
+  'dir.U': 'up', 'dir.D': 'down', 'dir.L': 'left', 'dir.R': 'right',
+  rollAria: 'Roll {dir}',
+  complete: 'Painted!', completeSub: '{moves} moves · par {par}', newBest: 'New best!',
+  next: 'Next level', replay: 'Replay', worldDone: '{world} complete!', allDone: 'Every maze is painted. Beautiful work!',
+  tut1: 'Swipe, press an arrow key or tap an arrow to roll. The ball keeps rolling until it hits a wall.',
+  tut2: 'Every roll paints the tiles it crosses. Paint every tile to finish the level.',
+  tut3: 'Plan your route. Rolling over painted tiles is fine, but every roll counts against par.',
+  tutWorld: 'Bigger mazes ahead. Stuck? Hint shows the next roll from where you are.',
+  hintMsg: 'Try rolling {dir}.', hintStuck: 'This position can’t be finished. Undo or restart.',
+  blocked: 'A wall blocks that way.', rolled: 'Rolled {dir}: {n} new tiles, {left} left.',
+  howToBody: 'Roll the paint ball with a swipe, the arrow keys (or W A S D) or the on-screen arrows. It rolls in a straight line until a wall stops it, painting every tile on the way. Paint every tile to finish. Finish in par moves or fewer for three stars. Undo (U), Restart (R) and Hint (H) are always free.',
+  settingsTitle: 'Settings', general: 'General', graphics: 'Graphics', language: 'Language', volume: 'Sound volume',
+  reducedMotion: 'Reduce motion',
+  quality: 'Quality', auto: 'Auto (detected: {tier})', low: 'Low', balanced: 'Balanced', high: 'High', ultra: 'Ultra',
+  renderScale: 'Render scale', fromPreset: 'From preset ({v})', off: 'Off', on: 'On', 'opt.low': 'Low', 'opt.high': 'High',
+  'cat.shadows': 'Shadows', 'cat.glow': 'Paint glow', 'cat.particles': 'Particles', 'cat.ambient': 'Ambient motion',
+  adaptive: 'Adaptive resolution', showFps: 'Show frame rate', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'no effects',
+  syncSaving: 'Saving…', syncSynced: 'Saved to cloud', syncError: 'Cloud save failed. Retrying later.', hello: 'Hi, {name}',
+  loadError: 'The levels could not be loaded. Check your connection and reload.',
+};
+
+const T = {
+  'en-US': en,
+  'en-GB': {
+    ...en,
+    tut3: 'Plan your route. Rolling over painted tiles is fine, but every roll counts against par.',
+    allDone: 'Every maze is painted. Lovely work!',
+  },
+  'es-419': {
+    tagline: 'Rueda la pintura. Cubre cada casilla.',
+    play: 'Jugar', continue: 'Continuar', levels: 'Niveles', settings: 'Ajustes', howTo: 'Cómo jugar',
+    back: 'Atrás', close: 'Cerrar', done: 'Listo', menu: 'Menú',
+    'world.studio': 'Estudio', 'world.gallery': 'Galería', 'world.workshop': 'Taller', 'world.atelier': 'Atelier',
+    level: 'Nivel {n}', levelOf: '{world} · {n}', moves: 'Movimientos', par: 'Par', best: 'Récord', left: 'Faltan',
+    starsTotal: '{n} / {total} estrellas', locked: 'Bloqueado', worldLocked: 'Consigue {n} estrellas para abrir',
+    undo: 'Deshacer', restart: 'Reiniciar', hint: 'Pista',
+    'dir.U': 'arriba', 'dir.D': 'abajo', 'dir.L': 'a la izquierda', 'dir.R': 'a la derecha',
+    rollAria: 'Rodar {dir}',
+    complete: '¡Pintado!', completeSub: '{moves} movimientos · par {par}', newBest: '¡Nuevo récord!',
+    next: 'Siguiente nivel', replay: 'Repetir', worldDone: '¡{world} completado!', allDone: 'Todos los laberintos están pintados. ¡Excelente trabajo!',
+    tut1: 'Desliza, presiona una flecha del teclado o toca una flecha para rodar. La bola rueda hasta chocar con una pared.',
+    tut2: 'Cada tiro pinta las casillas que cruza. Pinta todas las casillas para terminar el nivel.',
+    tut3: 'Planea tu ruta. Puedes pasar por casillas pintadas, pero cada tiro cuenta contra el par.',
+    tutWorld: 'Se vienen laberintos más grandes. ¿Atorado? La pista muestra el siguiente tiro desde donde estás.',
+    hintMsg: 'Prueba rodar {dir}.', hintStuck: 'Desde aquí no se puede terminar. Deshaz o reinicia.',
+    blocked: 'Una pared bloquea ese camino.', rolled: 'Rodó {dir}: {n} casillas nuevas, faltan {left}.',
+    howToBody: 'Rueda la bola de pintura deslizando, con las flechas (o W A S D) o con las flechas en pantalla. Rueda en línea recta hasta que una pared la detiene y pinta cada casilla en el camino. Pinta todas las casillas para terminar. Termina en el par o menos para ganar tres estrellas. Deshacer (U), Reiniciar (R) y Pista (H) siempre son gratis.',
+    settingsTitle: 'Ajustes', general: 'General', graphics: 'Gráficos', language: 'Idioma', volume: 'Volumen del sonido',
+    reducedMotion: 'Reducir movimiento',
+    quality: 'Calidad', auto: 'Automática (detectada: {tier})', low: 'Baja', balanced: 'Equilibrada', high: 'Alta', ultra: 'Ultra',
+    renderScale: 'Escala de renderizado', fromPreset: 'Según el ajuste ({v})', off: 'No', on: 'Sí', 'opt.low': 'Baja', 'opt.high': 'Alta',
+    'cat.shadows': 'Sombras', 'cat.glow': 'Brillo de pintura', 'cat.particles': 'Partículas', 'cat.ambient': 'Movimiento ambiental',
+    adaptive: 'Resolución adaptable', showFps: 'Mostrar FPS', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'sin efectos',
+    syncSaving: 'Guardando…', syncSynced: 'Guardado en la nube', syncError: 'Falló el guardado en la nube. Se reintentará.', hello: 'Hola, {name}',
+    loadError: 'No se pudieron cargar los niveles. Revisa tu conexión y recarga.',
+  },
+  'es-ES': null, // filled below from es-419 with Spain-specific overrides
+  'de-DE': {
+    tagline: 'Roll die Farbe. Bedecke jedes Feld.',
+    play: 'Spielen', continue: 'Weiter', levels: 'Level', settings: 'Einstellungen', howTo: 'Anleitung',
+    back: 'Zurück', close: 'Schließen', done: 'Fertig', menu: 'Menü',
+    'world.studio': 'Studio', 'world.gallery': 'Galerie', 'world.workshop': 'Werkstatt', 'world.atelier': 'Atelier',
+    level: 'Level {n}', levelOf: '{world} · {n}', moves: 'Züge', par: 'Par', best: 'Bestwert', left: 'Übrig',
+    starsTotal: '{n} / {total} Sterne', locked: 'Gesperrt', worldLocked: '{n} Sterne zum Freischalten',
+    undo: 'Rückgängig', restart: 'Neustart', hint: 'Tipp',
+    'dir.U': 'nach oben', 'dir.D': 'nach unten', 'dir.L': 'nach links', 'dir.R': 'nach rechts',
+    rollAria: '{dir} rollen',
+    complete: 'Bemalt!', completeSub: '{moves} Züge · Par {par}', newBest: 'Neuer Bestwert!',
+    next: 'Nächstes Level', replay: 'Wiederholen', worldDone: '{world} abgeschlossen!', allDone: 'Alle Labyrinthe sind bemalt. Großartig!',
+    tut1: 'Wische, drücke eine Pfeiltaste oder tippe auf einen Pfeil. Die Kugel rollt, bis sie an eine Wand stößt.',
+    tut2: 'Jeder Wurf bemalt die Felder, über die er rollt. Bemale alle Felder, um das Level zu schaffen.',
+    tut3: 'Plane deinen Weg. Über bemalte Felder zu rollen ist erlaubt, aber jeder Zug zählt gegen das Par.',
+    tutWorld: 'Jetzt kommen größere Labyrinthe. Festgefahren? Der Tipp zeigt den nächsten Zug von hier aus.',
+    hintMsg: 'Versuch es {dir}.', hintStuck: 'Von hier aus lässt es sich nicht lösen. Mach Züge rückgängig oder starte neu.',
+    blocked: 'Eine Wand versperrt den Weg.', rolled: '{dir} gerollt: {n} neue Felder, {left} übrig.',
+    howToBody: 'Rolle die Farbkugel per Wischen, mit den Pfeiltasten (oder W A S D) oder den Pfeilen auf dem Bildschirm. Sie rollt geradeaus, bis eine Wand sie stoppt, und bemalt jedes Feld unterwegs. Bemale alle Felder, um das Level zu schaffen. Mit höchstens Par-Zügen gibt es drei Sterne. Rückgängig (U), Neustart (R) und Tipp (H) sind immer kostenlos.',
+    settingsTitle: 'Einstellungen', general: 'Allgemein', graphics: 'Grafik', language: 'Sprache', volume: 'Lautstärke',
+    reducedMotion: 'Bewegung reduzieren',
+    quality: 'Qualität', auto: 'Automatisch (erkannt: {tier})', low: 'Niedrig', balanced: 'Ausgewogen', high: 'Hoch', ultra: 'Ultra',
+    renderScale: 'Renderskalierung', fromPreset: 'Laut Voreinstellung ({v})', off: 'Aus', on: 'An', 'opt.low': 'Niedrig', 'opt.high': 'Hoch',
+    'cat.shadows': 'Schatten', 'cat.glow': 'Farbglanz', 'cat.particles': 'Partikel', 'cat.ambient': 'Umgebungsbewegung',
+    adaptive: 'Adaptive Auflösung', showFps: 'Bildrate anzeigen', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'keine Effekte',
+    syncSaving: 'Speichern…', syncSynced: 'In der Cloud gespeichert', syncError: 'Cloud-Speichern fehlgeschlagen. Neuer Versuch später.', hello: 'Hallo, {name}',
+    loadError: 'Die Level konnten nicht geladen werden. Prüfe deine Verbindung und lade neu.',
+  },
+  'fr-FR': {
+    tagline: 'Faites rouler la peinture. Couvrez chaque case.',
+    play: 'Jouer', continue: 'Continuer', levels: 'Niveaux', settings: 'Paramètres', howTo: 'Comment jouer',
+    back: 'Retour', close: 'Fermer', done: 'OK', menu: 'Menu',
+    'world.studio': 'Studio', 'world.gallery': 'Galerie', 'world.workshop': 'Atelier', 'world.atelier': 'Grand atelier',
+    level: 'Niveau {n}', levelOf: '{world} · {n}', moves: 'Coups', par: 'Par', best: 'Record', left: 'Restant',
+    starsTotal: '{n} / {total} étoiles', locked: 'Verrouillé', worldLocked: '{n} étoiles pour débloquer',
+    undo: 'Annuler', restart: 'Recommencer', hint: 'Indice',
+    'dir.U': 'vers le haut', 'dir.D': 'vers le bas', 'dir.L': 'vers la gauche', 'dir.R': 'vers la droite',
+    rollAria: 'Rouler {dir}',
+    complete: 'Peint !', completeSub: '{moves} coups · par {par}', newBest: 'Nouveau record !',
+    next: 'Niveau suivant', replay: 'Rejouer', worldDone: '{world} terminé !', allDone: 'Tous les labyrinthes sont peints. Superbe travail !',
+    tut1: 'Glissez, appuyez sur une flèche du clavier ou touchez une flèche pour rouler. La bille roule jusqu’à heurter un mur.',
+    tut2: 'Chaque coup peint les cases traversées. Peignez toutes les cases pour finir le niveau.',
+    tut3: 'Planifiez votre trajet. Repasser sur des cases peintes est permis, mais chaque coup compte pour le par.',
+    tutWorld: 'Des labyrinthes plus grands arrivent. Bloqué ? L’indice montre le prochain coup depuis votre position.',
+    hintMsg: 'Essayez de rouler {dir}.', hintStuck: 'Impossible de finir depuis ici. Annulez ou recommencez.',
+    blocked: 'Un mur bloque ce chemin.', rolled: 'Roulé {dir} : {n} nouvelles cases, {left} restantes.',
+    howToBody: 'Faites rouler la bille de peinture en glissant, avec les flèches (ou W A S D) ou les flèches à l’écran. Elle roule tout droit jusqu’à ce qu’un mur l’arrête et peint chaque case sur son passage. Peignez toutes les cases pour finir. Terminez en par ou moins pour trois étoiles. Annuler (U), Recommencer (R) et Indice (H) sont toujours gratuits.',
+    settingsTitle: 'Paramètres', general: 'Général', graphics: 'Graphismes', language: 'Langue', volume: 'Volume sonore',
+    reducedMotion: 'Réduire les animations',
+    quality: 'Qualité', auto: 'Auto (détecté : {tier})', low: 'Faible', balanced: 'Équilibrée', high: 'Élevée', ultra: 'Ultra',
+    renderScale: 'Échelle de rendu', fromPreset: 'Selon le préréglage ({v})', off: 'Non', on: 'Oui', 'opt.low': 'Faible', 'opt.high': 'Élevé',
+    'cat.shadows': 'Ombres', 'cat.glow': 'Éclat de la peinture', 'cat.particles': 'Particules', 'cat.ambient': 'Mouvement ambiant',
+    adaptive: 'Résolution adaptative', showFps: 'Afficher les IPS', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'aucun effet',
+    syncSaving: 'Enregistrement…', syncSynced: 'Enregistré dans le cloud', syncError: 'Échec de l’enregistrement cloud. Nouvel essai plus tard.', hello: 'Bonjour, {name}',
+    loadError: 'Impossible de charger les niveaux. Vérifiez votre connexion et rechargez.',
+  },
+  'fr-CA': null, // filled below from fr-FR with Canadian overrides
+  'pt-BR': {
+    tagline: 'Role a tinta. Cubra cada casa.',
+    play: 'Jogar', continue: 'Continuar', levels: 'Fases', settings: 'Configurações', howTo: 'Como jogar',
+    back: 'Voltar', close: 'Fechar', done: 'Pronto', menu: 'Menu',
+    'world.studio': 'Estúdio', 'world.gallery': 'Galeria', 'world.workshop': 'Oficina', 'world.atelier': 'Ateliê',
+    level: 'Fase {n}', levelOf: '{world} · {n}', moves: 'Jogadas', par: 'Par', best: 'Recorde', left: 'Faltam',
+    starsTotal: '{n} / {total} estrelas', locked: 'Bloqueada', worldLocked: 'Ganhe {n} estrelas para abrir',
+    undo: 'Desfazer', restart: 'Recomeçar', hint: 'Dica',
+    'dir.U': 'para cima', 'dir.D': 'para baixo', 'dir.L': 'para a esquerda', 'dir.R': 'para a direita',
+    rollAria: 'Rolar {dir}',
+    complete: 'Pintado!', completeSub: '{moves} jogadas · par {par}', newBest: 'Novo recorde!',
+    next: 'Próxima fase', replay: 'Jogar de novo', worldDone: '{world} concluído!', allDone: 'Todos os labirintos estão pintados. Belo trabalho!',
+    tut1: 'Deslize, aperte uma seta do teclado ou toque numa seta para rolar. A bola rola até bater numa parede.',
+    tut2: 'Cada jogada pinta as casas por onde passa. Pinte todas as casas para concluir a fase.',
+    tut3: 'Planeje sua rota. Passar por casas pintadas é permitido, mas cada jogada conta contra o par.',
+    tutWorld: 'Labirintos maiores pela frente. Travou? A dica mostra a próxima jogada a partir de onde você está.',
+    hintMsg: 'Tente rolar {dir}.', hintStuck: 'Não dá para terminar a partir daqui. Desfaça ou recomece.',
+    blocked: 'Uma parede bloqueia esse caminho.', rolled: 'Rolou {dir}: {n} casas novas, faltam {left}.',
+    howToBody: 'Role a bola de tinta deslizando, com as setas (ou W A S D) ou com as setas na tela. Ela rola em linha reta até uma parede pará-la, pintando cada casa pelo caminho. Pinte todas as casas para terminar. Termine no par ou menos para ganhar três estrelas. Desfazer (U), Recomeçar (R) e Dica (H) são sempre grátis.',
+    settingsTitle: 'Configurações', general: 'Geral', graphics: 'Gráficos', language: 'Idioma', volume: 'Volume do som',
+    reducedMotion: 'Reduzir movimento',
+    quality: 'Qualidade', auto: 'Automática (detectada: {tier})', low: 'Baixa', balanced: 'Equilibrada', high: 'Alta', ultra: 'Ultra',
+    renderScale: 'Escala de renderização', fromPreset: 'Conforme a predefinição ({v})', off: 'Não', on: 'Sim', 'opt.low': 'Baixa', 'opt.high': 'Alta',
+    'cat.shadows': 'Sombras', 'cat.glow': 'Brilho da tinta', 'cat.particles': 'Partículas', 'cat.ambient': 'Movimento ambiente',
+    adaptive: 'Resolução adaptativa', showFps: 'Mostrar FPS', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'sem efeitos',
+    syncSaving: 'Salvando…', syncSynced: 'Salvo na nuvem', syncError: 'Falha ao salvar na nuvem. Tentaremos de novo.', hello: 'Olá, {name}',
+    loadError: 'Não foi possível carregar as fases. Verifique sua conexão e recarregue.',
+  },
+  'it-IT': {
+    tagline: 'Fai rotolare la vernice. Copri ogni casella.',
+    play: 'Gioca', continue: 'Continua', levels: 'Livelli', settings: 'Impostazioni', howTo: 'Come si gioca',
+    back: 'Indietro', close: 'Chiudi', done: 'Fatto', menu: 'Menu',
+    'world.studio': 'Studio', 'world.gallery': 'Galleria', 'world.workshop': 'Laboratorio', 'world.atelier': 'Atelier',
+    level: 'Livello {n}', levelOf: '{world} · {n}', moves: 'Mosse', par: 'Par', best: 'Record', left: 'Mancano',
+    starsTotal: '{n} / {total} stelle', locked: 'Bloccato', worldLocked: 'Ottieni {n} stelle per sbloccare',
+    undo: 'Annulla', restart: 'Ricomincia', hint: 'Suggerimento',
+    'dir.U': 'in alto', 'dir.D': 'in basso', 'dir.L': 'a sinistra', 'dir.R': 'a destra',
+    rollAria: 'Rotola {dir}',
+    complete: 'Dipinto!', completeSub: '{moves} mosse · par {par}', newBest: 'Nuovo record!',
+    next: 'Livello successivo', replay: 'Rigioca', worldDone: '{world} completato!', allDone: 'Tutti i labirinti sono dipinti. Ottimo lavoro!',
+    tut1: 'Scorri, premi una freccia della tastiera o tocca una freccia per rotolare. La palla rotola finché non urta un muro.',
+    tut2: 'Ogni tiro dipinge le caselle che attraversa. Dipingi tutte le caselle per finire il livello.',
+    tut3: 'Pianifica il percorso. Ripassare su caselle dipinte è permesso, ma ogni mossa conta per il par.',
+    tutWorld: 'Arrivano labirinti più grandi. Bloccato? Il suggerimento mostra la prossima mossa da dove sei.',
+    hintMsg: 'Prova a rotolare {dir}.', hintStuck: 'Da qui non si può finire. Annulla o ricomincia.',
+    blocked: 'Un muro blocca quella direzione.', rolled: 'Rotolato {dir}: {n} caselle nuove, ne mancano {left}.',
+    howToBody: 'Fai rotolare la palla di vernice scorrendo, con le frecce (o W A S D) o con le frecce sullo schermo. Rotola dritta finché un muro non la ferma e dipinge ogni casella lungo il percorso. Dipingi tutte le caselle per finire. Finisci entro il par per tre stelle. Annulla (U), Ricomincia (R) e Suggerimento (H) sono sempre gratuiti.',
+    settingsTitle: 'Impostazioni', general: 'Generali', graphics: 'Grafica', language: 'Lingua', volume: 'Volume audio',
+    reducedMotion: 'Riduci movimento',
+    quality: 'Qualità', auto: 'Automatica (rilevata: {tier})', low: 'Bassa', balanced: 'Bilanciata', high: 'Alta', ultra: 'Ultra',
+    renderScale: 'Scala di rendering', fromPreset: 'Da preimpostazione ({v})', off: 'No', on: 'Sì', 'opt.low': 'Bassa', 'opt.high': 'Alta',
+    'cat.shadows': 'Ombre', 'cat.glow': 'Bagliore vernice', 'cat.particles': 'Particelle', 'cat.ambient': 'Movimento ambientale',
+    adaptive: 'Risoluzione adattiva', showFps: 'Mostra FPS', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'nessun effetto',
+    syncSaving: 'Salvataggio…', syncSynced: 'Salvato nel cloud', syncError: 'Salvataggio cloud non riuscito. Nuovo tentativo più tardi.', hello: 'Ciao, {name}',
+    loadError: 'Impossibile caricare i livelli. Controlla la connessione e ricarica.',
+  },
+};
+
+T['es-ES'] = {
+  ...T['es-419'],
+  settings: 'Ajustes', 'dir.L': 'a la izquierda',
+  tut1: 'Desliza, pulsa una flecha del teclado o toca una flecha para rodar. La bola rueda hasta chocar con una pared.',
+  tutWorld: 'Llegan laberintos más grandes. ¿Atascado? La pista muestra el siguiente tiro desde donde estás.',
+  hintMsg: 'Prueba a rodar {dir}.',
+  allDone: 'Todos los laberintos están pintados. ¡Buen trabajo!',
+  loadError: 'No se han podido cargar los niveles. Comprueba tu conexión y recarga.',
+  syncError: 'Ha fallado el guardado en la nube. Se reintentará.',
+};
+T['fr-CA'] = {
+  ...T['fr-FR'],
+  settings: 'Réglages', settingsTitle: 'Réglages',
+  tut1: 'Glissez, appuyez sur une flèche du clavier ou touchez une flèche pour rouler. La bille roule jusqu’à ce qu’elle frappe un mur.',
+  tutWorld: 'De plus grands labyrinthes s’en viennent. Bloqué? L’indice montre le prochain coup à partir de votre position.',
+  complete: 'Peint!', newBest: 'Nouveau record!', worldDone: '{world} terminé!', allDone: 'Tous les labyrinthes sont peints. Beau travail!',
+  auto: 'Auto (détecté : {tier})', syncSynced: 'Enregistré dans le nuage', syncError: 'Échec de l’enregistrement dans le nuage. Nouvel essai plus tard.',
+};
+
+let current = 'en-US';
+
+/** Best supported locale for a BCP-47 tag (exact, then region fallback, then language). */
+export function matchLocale(tag) {
+  if (!tag) return 'en-US';
+  if (LOCALES.includes(tag)) return tag;
+  const [lang, region] = tag.split('-');
+  if (lang === 'es') return region === 'ES' ? 'es-ES' : 'es-419';
+  if (lang === 'fr') return region === 'CA' ? 'fr-CA' : 'fr-FR';
+  if (lang === 'en') return ['GB', 'UK', 'IE', 'AU', 'NZ'].includes(region) ? 'en-GB' : 'en-US';
+  return LOCALES.find((l) => l.startsWith(lang + '-')) || 'en-US';
+}
+
+export function setLocale(loc) {
+  current = LOCALES.includes(loc) ? loc : 'en-US';
+  if (typeof document !== 'undefined') document.documentElement.lang = current;
+}
+export const getLocale = () => current;
+
+export function t(key, vars) {
+  let s = T[current][key] ?? en[key] ?? key;
+  if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+  return s;
+}
+
+export const STRINGS = T;

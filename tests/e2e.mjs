@@ -1,19 +1,12 @@
 /**
- * Paint Maze — end-to-end playthrough test (dev only, not shipped).
+ * Paint Maze — automated playthrough through the real, visible UI (dev only).
  *
- * Serves the repo with an embedded static server (ephemeral port) and drives
- * the real visible UI in headless Chrome (playwright-core + system Chrome),
- * on desktop (1280x800) and mobile (390x844, touch) viewports.
- *
- * Screenshots: /tmp/paint-maze-e2e-<stage>-<desktop|mobile>.png
- *
- * Covers: boot, a full playthrough to "Complete!" driven only through real
- * arrow keys and on-screen direction buttons (the direction to press comes from
- * the in-page hint API, but every input is a genuine key press or click), the
- * win overlay, undo, restart, save/resume across a reload, and touch-target
- * sizes on a phone viewport, and the Settings → Graphics panel (presets, an
- * override, persistence across reload). Fails on any non-benign console
- * error/warning or page error.
+ * Serves the repo (refusing tests/ and tools/) and drives headless Chrome via
+ * playwright-core at desktop, portrait-phone and landscape-phone sizes. Levels
+ * are solved by clicking the on-screen arrows (and keys, swipes and taps), using
+ * the stored solutions only to decide which visible control to press. Fails on
+ * any console error or warning, page error, failed request, or control that is
+ * cut off by the viewport.
  */
 import http from 'node:http';
 import fs from 'node:fs';
@@ -22,284 +15,217 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const MIME = {
-  '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
-  '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml',
-  '.png': 'image/png', '.ico': 'image/x-icon', '.wav': 'audio/wav',
-  '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.opus': 'audio/ogg',
-  '.glb': 'model/gltf-binary', '.woff2': 'font/woff2', '.ts': 'text/plain',
-};
+const LEVELS = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/levels.json'))).levels;
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.opus': 'audio/ogg' };
 
 const server = http.createServer((req, res) => {
   let url = decodeURIComponent(req.url.split('?')[0]);
-  // The same files also answer under /nested/game/ so root-absolute asset
-  // paths (which break when a game is served from a subfolder) fail here.
-  if (url.startsWith('/nested/game/')) url = url.slice('/nested/game'.length);
-  const file = path.join(ROOT, url === '/' ? 'index.html' : url);
-  if (!file.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
-  fs.readFile(file, (e, d) => {
-    if (e) { res.writeHead(404); res.end('not found'); return; }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream' });
-    res.end(d);
+  if (url === '/') url = '/index.html';
+  if (/^\/(tests|tools|node_modules)\/|\/\./.test(url)) { res.writeHead(403); return res.end(); }
+  fs.readFile(path.join(ROOT, url), (err, data) => {
+    if (err) { res.writeHead(404); return res.end(); }
+    res.writeHead(200, { 'content-type': MIME[path.extname(url)] || 'application/octet-stream' });
+    res.end(data);
   });
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const BASE = `http://127.0.0.1:${server.address().port}/`;
 
-// Benign GPU/swiftshader noise, from tools/production_game_audit.mjs.
-const browserNoise = /GL Driver Message|GPU stall due to ReadPixels|Automatic fallback to software WebGL|EnableWebGLDeveloperExtensions/i;
+const ok = (msg) => console.log(`ok - ${msg}`);
+const fail = (msg) => { throw new Error(msg); };
+const body = (page, key) => page.evaluate((k) => document.body.dataset[k], key);
 
-const SHOT = (stage, vp) => `/tmp/paint-maze-e2e-${stage}-${vp}.png`;
-
-const browser = await chromium.launch({
-  executablePath: '/usr/bin/google-chrome',
-  args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
-});
-
-const step = async (name, fn) => {
-  await fn();
-  console.log(`ok - ${name}`);
-};
-
-async function readHud(page) {
-  return page.evaluate(() => ({
-    remaining: document.getElementById('hud-score').textContent.trim(),
-    moves: document.getElementById('hud-moves').textContent.trim(),
-    status: document.getElementById('status-line').textContent.trim(),
-  }));
+async function assertVisibleControls(page, name, where) {
+  const bad = await page.evaluate(() => {
+    const out = [];
+    for (const el of document.querySelectorAll('button, select, input, h1, h2, .hud, .tip, #board')) {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height || el.closest('[hidden]') || getComputedStyle(el).visibility === 'hidden') continue;
+      if (el.closest('.world-list') || el.closest('.card')) continue; // scroll containers
+      if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) out.push(`${el.id || el.className || el.tagName} ${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.right)},${Math.round(r.bottom)}`);
+    }
+    return out;
+  });
+  if (bad.length) fail(`${name}/${where}: controls outside the viewport: ${bad.join('; ')}`);
 }
 
-async function runPass(vpName, viewport, hasTouch) {
-  const context = await browser.newContext({ viewport, hasTouch });
+async function press(page, dir, touch) {
+  const btn = page.locator(`.dir[data-dir="${dir}"]`);
+  if (touch) {
+    const b = await btn.boundingBox();
+    await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2);
+  } else await btn.click();
+}
+
+async function solveLevel(page, idx, { touch = false, via = 'buttons' } = {}) {
+  const lv = LEVELS[idx];
+  await page.waitForFunction((id) => document.getElementById('level-title').textContent.length > 0 && document.body.dataset.screen === 'game', lv.id);
+  const start = Number(await body(page, 'moves'));
+  let n = start;
+  for (const d of lv.solution) {
+    if (via === 'keys') await page.keyboard.press({ U: 'ArrowUp', D: 'ArrowDown', L: 'ArrowLeft', R: 'ArrowRight' }[d]);
+    else await press(page, d, touch);
+    n++;
+    await page.waitForFunction((m) => Number(document.body.dataset.moves) === m, n, { timeout: 4000 });
+  }
+  await page.waitForSelector('#overlay-complete:not([hidden])', { timeout: 6000 });
+  const stars = Number(await body(page, 'stars'));
+  if (stars !== 3) fail(`${lv.id}: expected 3 stars at par, got ${stars}`);
+}
+
+async function run(browser, name, ctxOpts, { full }) {
+  const context = await browser.newContext(ctxOpts);
   const page = await context.newPage();
   const errors = [];
-  page.on('pageerror', (e) => { if (!browserNoise.test(e.message)) errors.push(`pageerror: ${e.message}`); });
-  page.on('console', (m) => {
-    if ((m.type() === 'error' || m.type() === 'warning') && !browserNoise.test(m.text())) errors.push(`console ${m.type()}: ${m.text()}`);
-  });
+  page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`); });
+  page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+  page.on('response', (r) => { if (r.status() >= 400) errors.push(`http ${r.status()} ${r.url()}`); });
+  const touch = !!ctxOpts.hasTouch;
 
-  let responsive = false;
-  try {
-    await step(`${vpName}: load — HUD, canvas and direction controls visible`, async () => {
-      await page.goto(BASE, { waitUntil: 'load', timeout: 30000 });
-      // Start from a clean slate once, then let the game persist normally.
-      await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* ignore */ } });
-      await page.reload({ waitUntil: 'load' });
-      await page.waitForSelector('#hud', { state: 'visible', timeout: 10000 });
-      await page.waitForSelector('#game-canvas', { state: 'visible' });
-      for (const id of ['#btn-up', '#btn-left', '#btn-down', '#btn-right']) {
-        await page.waitForSelector(id, { state: 'visible' });
-      }
-      await page.screenshot({ path: SHOT('loaded', vpName) });
-    });
+  await page.goto(BASE);
+  await page.waitForSelector('body[data-ready="true"]');
+  await assertVisibleControls(page, name, 'title');
+  ok(`${name}: title screen`);
 
-    await step(`${vpName}: direction buttons visible and clickable`, async () => {
-      for (const id of ['#btn-up', '#btn-left', '#btn-down', '#btn-right']) {
-        const box = await page.locator(id).boundingBox();
-        if (!box || box.width < 20 || box.height < 20) {
-          throw new Error(`${id} unusable on ${vpName}: ${JSON.stringify(box)}`);
-        }
-        if (box.width < 44 || box.height < 44) {
-          console.log(`  note (${vpName}): ${id} is ${Math.round(box.width)}x${Math.round(box.height)}px,`
-            + ' below the 44x44px touch-target minimum in spec.md');
-        }
-      }
-    });
+  await page.click('#btn-howto');
+  await page.waitForSelector('#overlay-howto:not([hidden])');
+  if (!/rolls in a straight line/.test(await page.textContent('#overlay-howto'))) fail('how-to text missing');
+  await page.click('#overlay-howto .close-overlay');
+  ok(`${name}: how to play opens and closes`);
 
-    await step(`${vpName}: game boots with a live board`, async () => {
-      await page.waitForFunction(() => {
-        const s = window.__paintMaze && window.__paintMaze.state();
-        return !!s && parseInt(document.getElementById('hud-score').textContent, 10) > 0;
-      }, null, { timeout: 10000 });
-      const hud = await readHud(page);
-      if (hud.moves !== '0') throw new Error(`fresh game started at moves=${hud.moves}`);
-    });
+  await page.click('#btn-play');
+  await page.waitForSelector('#screen-game.active');
+  if (await page.isHidden('#tip')) fail('first level shows no instructions');
+  await assertVisibleControls(page, name, 'game');
+  await solveLevel(page, 0, { touch });
+  ok(`${name}: level 1 painted with the on-screen arrows (3 stars)`);
+  await assertVisibleControls(page, name, 'complete');
+  await page.click('#btn-next');
+  await solveLevel(page, 1, { touch });
+  await page.click('#btn-next');
+  ok(`${name}: level 2 painted, Next advances`);
 
-    await step(`${vpName}: play to completion via real arrow keys and buttons`, async () => {
-      const keys = ['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'];
-      const btns = ['#btn-up', '#btn-right', '#btn-down', '#btn-left'];
-      for (let i = 0; i < 600; i++) {
-        const hud = await readHud(page);
-        if (parseInt(hud.moves, 10) > 0) responsive = true;
-        if (hud.remaining === '0') break;
-        const dir = await page.evaluate(() => window.__paintMaze.hint());
-        if (dir === null || dir === undefined) throw new Error('no hint available mid-game');
-        // Alternate between the two real input paths a player would use.
-        if (i % 2 === 0) await page.keyboard.press(keys[dir]);
-        else await page.locator(btns[dir]).click();
-        if (i === 3) await page.screenshot({ path: SHOT('play', vpName) });
-      }
-      await page.waitForFunction(
-        () => document.getElementById('status-line').textContent.trim() === 'Complete!',
-        null, { timeout: 30000 },
-      );
-      const final = await readHud(page);
-      if (final.remaining !== '0') throw new Error(`won but remaining=${final.remaining}`);
-      if (!(parseInt(final.moves, 10) > 0)) throw new Error('won without any moves');
-      await page.waitForSelector('#overlay', { state: 'visible' });
-      console.log(`  completed in ${final.moves} moves`);
-      await page.screenshot({ path: SHOT('complete', vpName) });
-    });
-
-    await step(`${vpName}: undo restores the previous position`, async () => {
-      await page.locator('#btn-overlay-next').click(); // dismiss win overlay via New maze
-      await page.waitForSelector('#overlay', { state: 'hidden' });
-      await page.waitForFunction(() => window.__paintMaze.state().moves === 0);
-      const dir = await page.evaluate(() => window.__paintMaze.hint());
-      await page.keyboard.press(['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'][dir]);
-      await page.waitForFunction(() => window.__paintMaze.state().moves === 1);
-      const painted = await page.evaluate(() => window.__paintMaze.state().ballIdx);
-      await page.locator('#btn-undo').click();
-      await page.waitForFunction(() => window.__paintMaze.state().moves === 0);
-      const back = await page.evaluate(() => window.__paintMaze.state().ballIdx);
-      if (back === painted) throw new Error('undo left the roller where it was');
-      const hud = await readHud(page);
-      if (hud.moves !== '0') throw new Error(`undo left moves=${hud.moves}`);
-    });
-
-    await step(`${vpName}: progress survives a reload, restart clears it`, async () => {
-      const dir = await page.evaluate(() => window.__paintMaze.hint());
-      await page.keyboard.press(['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'][dir]);
-      await page.waitForFunction(() => window.__paintMaze.state().moves === 1);
-      const before = await page.evaluate(() => {
-        const s = window.__paintMaze.state();
-        return { seed: s.seedStr, ball: s.ballIdx, moves: s.moves };
-      });
-      await page.reload({ waitUntil: 'load' });
-      await page.waitForFunction(() => !!(window.__paintMaze && window.__paintMaze.state()));
-      const after = await page.evaluate(() => {
-        const s = window.__paintMaze.state();
-        return { seed: s.seedStr, ball: s.ballIdx, moves: s.moves };
-      });
-      if (JSON.stringify(before) !== JSON.stringify(after)) {
-        throw new Error(`save not restored: ${JSON.stringify(before)} -> ${JSON.stringify(after)}`);
-      }
-      await page.locator('#btn-restart').click();
-      await page.waitForFunction(() => window.__paintMaze.state().moves === 0);
-      const restarted = await page.evaluate(() => window.__paintMaze.state().seedStr);
-      if (restarted !== before.seed) throw new Error('restart changed the maze seed');
-    });
-
-    await step(`${vpName}: Settings → Graphics opens, fits and swallows game keys`, async () => {
-      const btn = page.locator('#btn-settings');
-      const bb = await btn.boundingBox();
-      if (!bb || bb.width < 44 || bb.height < 44) throw new Error(`settings button too small: ${JSON.stringify(bb)}`);
-      if (hasTouch) await btn.tap(); else await btn.click();
-      await page.waitForSelector('#settings', { state: 'visible' });
-      const sheet = await page.locator('#settings .sheet').boundingBox();
-      if (sheet.x < 0 || sheet.y < 0 || sheet.x + sheet.width > viewport.width + 1 || sheet.y + sheet.height > viewport.height + 1) {
-        throw new Error(`settings panel overflows the ${vpName} viewport: ${JSON.stringify(sheet)}`);
-      }
-      const moves = await page.evaluate(() => window.__paintMaze.state().moves);
-      await page.keyboard.press('ArrowLeft');
-      await page.keyboard.press('ArrowRight');
-      if (await page.evaluate(() => window.__paintMaze.state().moves) !== moves) throw new Error('game moved while settings were open');
-      const auto = await page.locator('#gfx-preset option[value="auto"]').textContent();
-      if (!/Auto \(detected: \w+\)/.test(auto)) throw new Error(`auto label: ${auto}`);
-    });
-
-    await step(`${vpName}: graphics presets and overrides apply live`, async () => {
-      const preset = () => page.evaluate(() => [document.body.dataset.gfxPreset, document.getElementById('game-canvas').dataset.gfxPreset]);
-      for (const p of ['low', 'ultra', 'high']) {
-        await page.selectOption('#gfx-preset', p);
-        await page.waitForFunction((want) => document.body.dataset.gfxPreset === want, p);
-        const [body, canvas] = await preset();
-        if (body !== p || canvas !== p) throw new Error(`preset ${p} not applied: body=${body} canvas=${canvas}`);
-        await page.waitForTimeout(400); // let the post chain for this preset render a few frames
-      }
-      await page.waitForFunction(() => /2048² shadows/.test(document.getElementById('gfx-summary').textContent));
-      await page.selectOption('#gfx-bloom', 'off');
-      await page.waitForFunction(() => !/bloom/.test(document.getElementById('gfx-summary').textContent));
-      await page.locator('#gfx-fps').check();
-      await page.waitForSelector('#fps-meter', { state: 'visible' });
-      await page.screenshot({ path: SHOT('graphics', vpName) });
-      // Choosing a preset clears overrides.
-      await page.selectOption('#gfx-preset', 'balanced');
-      if (await page.inputValue('#gfx-bloom') !== 'preset') throw new Error('preset change kept the bloom override');
-      await page.selectOption('#gfx-preset', 'high');
-      await page.selectOption('#gfx-bloom', 'off');
-      await page.keyboard.press('Escape');
-      await page.waitForSelector('#settings', { state: 'hidden' });
-      if (await page.evaluate(() => document.activeElement && document.activeElement.id) !== 'btn-settings') {
-        throw new Error('focus did not return to the Settings button');
-      }
-    });
-
-    await step(`${vpName}: graphics settings survive a reload`, async () => {
-      await page.reload({ waitUntil: 'load' });
-      await page.waitForFunction(() => !!(window.__paintMaze && window.__paintMaze.state()));
-      const canvas = await page.evaluate(() => document.getElementById('game-canvas').dataset.gfxPreset);
-      if (canvas !== 'high') throw new Error(`preset after reload: ${canvas}`);
-      await page.locator('#btn-settings').click();
-      if (await page.inputValue('#gfx-preset') !== 'high') throw new Error('preset select not restored');
-      if (await page.inputValue('#gfx-bloom') !== 'off') throw new Error('bloom override not restored');
-      if (!(await page.locator('#gfx-fps').isChecked())) throw new Error('frame-rate toggle not restored');
-      await page.waitForTimeout(500);
-      await page.locator('#btn-settings-close').click();
-      await page.waitForSelector('#settings', { state: 'hidden' });
-      // Leave the default (Auto) behind for later runs.
-      await page.evaluate(() => localStorage.removeItem('paint-maze:v1:graphics'));
-    });
-
-    if (errors.length) {
-      throw new Error(`${vpName}: non-benign page errors:\n` + errors.join('\n'));
-    }
-    await step(`${vpName}: no non-benign console/page errors`, async () => {});
-  } finally {
-    await context.close();
-  }
-  return { responsive, errors };
-}
-
-// Boot without a web server (file://) and from a subfolder: both fail if any
-// asset is referenced by a root-absolute path such as /bundle.js.
-async function bootsAt(url) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-  const page = await context.newPage();
-  try {
-    await page.goto(url, { waitUntil: 'load', timeout: 30000 });
-    await page.waitForFunction(() => {
-      const s = window.__paintMaze && window.__paintMaze.state();
-      return !!s && parseInt(document.getElementById('hud-score').textContent, 10) > 0;
-    }, null, { timeout: 10000 });
-    const helpOpen = await page.evaluate(() => document.getElementById('how-to-play').open);
-    if (!helpOpen) throw new Error('How to play is not open for a first-time player');
-    await page.keyboard.press(['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'][
-      await page.evaluate(() => window.__paintMaze.hint())]);
-    await page.waitForFunction(() => window.__paintMaze.state().moves === 1);
-    if (await page.evaluate(() => document.getElementById('how-to-play').open)) {
-      throw new Error('How to play stayed open after the first roll');
-    }
-  } finally {
-    await context.close();
-  }
-}
-
-let exitCode = 0;
-try {
-  await step('boots from a subfolder URL (no root-absolute asset paths)',
-    () => bootsAt(BASE + 'nested/game/index.html'));
-  await step('boots from file:// (index.html opened straight from disk)',
-    () => bootsAt('file://' + path.join(ROOT, 'index.html')));
-  const desktop = await runPass('desktop', { width: 1280, height: 800 }, false);
-  const mobile = await runPass('mobile', { width: 390, height: 844 }, true);
-
-  const allErrors = [...desktop.errors, ...mobile.errors];
-  if (allErrors.length) {
-    console.log('PAGE ERRORS:\n' + allErrors.join('\n'));
-    exitCode = 1;
-  } else if (!desktop.responsive || !mobile.responsive) {
-    console.log('\nE2E FAIL — inputs produced no game response on'
-      + `${desktop.responsive ? '' : ' desktop'}${mobile.responsive ? '' : ' mobile'}`);
-    exitCode = 1;
+  if (!full) {
+    // Tap a tile in line with the ball to roll toward it.
+    await page.waitForSelector('#screen-game.active');
+    const lv = LEVELS[2];
+    const geo = await page.evaluate(() => { const c = document.getElementById('board'); const r = c.getBoundingClientRect(); return { x: r.left, y: r.top, ...c.dataset }; });
+    const [sx, sy] = lv.start;
+    const tx = sx + 2; // level 3 is a ring: two tiles right of the start is floor
+    await page.touchscreen.tap(geo.x + Number(geo.ox) + (tx + 0.5) * Number(geo.tile), geo.y + Number(geo.oy) + (sy + 0.5) * Number(geo.tile));
+    await page.waitForFunction(() => Number(document.body.dataset.moves) === 1, null, { timeout: 4000 });
+    ok(`${name}: tapping a tile in line with the ball rolls toward it`);
+    await assertVisibleControls(page, name, 'game-2');
   } else {
-    console.log('\nE2E PASS — full playthrough completed on desktop and mobile, no page errors');
+    // Keyboard play on level 3.
+    await solveLevel(page, 2, { via: 'keys' });
+    await page.keyboard.press('Enter'); // focus sits on Next level
+    await page.waitForSelector('#overlay-complete', { state: 'hidden' });
+    ok(`${name}: level 3 painted with arrow keys; Enter goes to the next level`);
+
+    // Level 4: blocked roll, undo, restart, hint, swipe.
+    const lv = LEVELS[3];
+    const disabled = await page.evaluate(() => [...document.querySelectorAll('.dir')].filter((b) => b.disabled).map((b) => b.dataset.dir));
+    if (!disabled.length) fail('no walled direction is disabled on level 4');
+    await press(page, lv.solution[0]);
+    await page.waitForFunction(() => document.body.dataset.moves === '1');
+    await page.waitForFunction(() => !document.getElementById('btn-undo').disabled);
+    await page.click('#btn-undo');
+    await page.waitForFunction(() => document.body.dataset.moves === '0');
+    ok(`${name}: undo takes back a roll (walled arrows disabled: ${disabled.join(',')})`);
+    await page.click('#btn-hint');
+    const hinted = await page.evaluate(() => document.querySelector('.dir.primary')?.dataset.dir);
+    if (hinted !== lv.solution[0]) fail(`hint suggested ${hinted}, expected ${lv.solution[0]}`);
+    if (!/Try rolling/.test(await page.textContent('#tip'))) fail('hint text not shown');
+    ok(`${name}: hint highlights the next optimal roll (${hinted})`);
+    // Swipe on the board in the hinted direction.
+    const box = await page.locator('#board').boundingBox();
+    const [dx, dy] = { U: [0, -80], D: [0, 80], L: [-80, 0], R: [80, 0] }[hinted];
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + dx, box.y + box.height / 2 + dy, { steps: 4 });
+    await page.mouse.up();
+    await page.waitForFunction(() => document.body.dataset.moves === '1');
+    ok(`${name}: swipe rolls the ball`);
+    await page.waitForFunction(() => !document.getElementById('btn-restart').disabled);
+    await page.click('#btn-restart');
+    await page.waitForFunction(() => document.body.dataset.moves === '0');
+    ok(`${name}: restart resets the level`);
+
+    // Resume: a mid-level reload restores the rolls.
+    await press(page, lv.solution[0]);
+    await page.waitForFunction(() => document.body.dataset.moves === '1');
+    await page.waitForTimeout(700);
+    await page.reload();
+    await page.waitForSelector('body[data-ready="true"]');
+    if ((await page.textContent('#btn-play')) !== 'Continue') fail('title does not offer Continue');
+    await page.click('#btn-play');
+    await page.waitForFunction(() => document.body.dataset.moves === '1');
+    ok(`${name}: in-progress level resumes after reload`);
+    for (const d of lv.solution.slice(1)) { await press(page, d); await page.waitForTimeout(40); }
+    await page.waitForSelector('#overlay-complete:not([hidden])', { timeout: 6000 });
+
+    // Level select shows progress; the next level is open and later ones locked.
+    await page.click('#btn-complete-levels');
+    await page.waitForSelector('#screen-levels.active');
+    const lvState = await page.evaluate(() => ({
+      done: document.querySelectorAll('.level-btn.done').length,
+      locked: document.querySelectorAll('.level-btn:disabled').length,
+      stars: document.getElementById('levels-stars').textContent,
+    }));
+    if (lvState.done !== 4 || lvState.locked !== 55 || !/★ 12/.test(lvState.stars)) fail('level select state ' + JSON.stringify(lvState));
+    ok(`${name}: level select shows ${lvState.done} done, ${lvState.locked} locked, ${lvState.stars}`);
+    await page.click(`[data-level="${LEVELS[4].id}"]`);
+    await page.waitForSelector('#screen-game.active');
+    await page.click('#btn-menu');
+    await page.waitForSelector('#screen-levels.active');
+    await page.click('#screen-levels [data-goto="title"]');
+
+    // Settings: language and graphics, persisted across reload.
+    await page.click('#btn-settings');
+    await page.waitForSelector('#overlay-settings:not([hidden])');
+    await page.selectOption('#set-locale', 'de-DE');
+    if ((await page.textContent('#btn-levels')) !== 'Level' || (await page.textContent('#tab-graphics')) !== 'Grafik') fail('German not applied');
+    await page.selectOption('#set-locale', 'en-US');
+    await page.click('#tab-graphics');
+    await page.selectOption('#gfx-preset', 'low');
+    if (await body(page, 'gfxPreset') !== 'low') fail('Low preset not applied');
+    if (!/no effects/.test(await page.textContent('#gfx-summary'))) fail('Low summary: ' + await page.textContent('#gfx-summary'));
+    await page.selectOption('#gfx-preset', 'high');
+    await page.selectOption('#gfx-cats select[data-cat="glow"]', 'off');
+    await page.check('#gfx-fps');
+    const summary = await page.textContent('#gfx-summary');
+    if (!/shadows/.test(summary) || /glow/.test(summary)) fail('High + glow off summary: ' + summary);
+    await page.click('#overlay-settings .close-overlay');
+    await page.reload();
+    await page.waitForSelector('body[data-ready="true"]');
+    if (await body(page, 'gfxPreset') !== 'high') fail('graphics preset not persisted');
+    await page.click('#btn-settings');
+    await page.click('#tab-graphics');
+    if (await page.inputValue('#gfx-cats select[data-cat="glow"]') !== 'off') fail('glow override not persisted');
+    await page.selectOption('#gfx-preset', 'ultra');
+    if (await page.inputValue('#gfx-cats select[data-cat="glow"]') !== '') fail('choosing a preset did not clear overrides');
+    await page.keyboard.press('Escape');
+    ok(`${name}: settings — language switch, graphics presets/overrides/FPS persist, preset clears overrides`);
   }
+
+  await context.close();
+  if (errors.length) fail(`${name}: console/page errors:\n  ${errors.join('\n  ')}`);
+  ok(`${name}: no console errors or warnings`);
+}
+
+const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--mute-audio'] });
+let code = 0;
+try {
+  await run(browser, 'desktop', { viewport: { width: 1280, height: 800 } }, { full: true });
+  await run(browser, 'mobile', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }, { full: false });
+  await run(browser, 'landscape', { viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true }, { full: false });
+  console.log('\nE2E PASS — paint-maze, desktop + portrait + landscape');
 } catch (e) {
-  console.error('E2E FAIL:', e.stack || e.message || e);
-  exitCode = 1;
+  console.error('\nE2E FAIL:', e.stack);
+  code = 1;
 } finally {
   await browser.close();
   server.close();
 }
-process.exit(exitCode);
+process.exit(code);

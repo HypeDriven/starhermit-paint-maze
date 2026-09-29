@@ -1,5 +1,3 @@
-'use strict';
-
 // StarHermit platform adapter: launch token, account identity, cloud save.
 // Hosted mode activates only when a launch token is read from the URL
 // fragment (query-string fallbacks exist for local dev only). Without a
@@ -249,7 +247,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 	document.addEventListener('visibilitychange', () => { if (document.hidden) flushCloud(); });
 }
 
-module.exports = {
+export {
 	boot, pushCloud, flushCloud, decodeJwtPayload,
 	zipStore, unzipFirstEntry, bytesToBase64, base64ToBytes
 };
