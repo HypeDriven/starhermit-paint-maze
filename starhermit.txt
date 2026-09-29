@@ -1,4 +1,5 @@
 name=Paint Maze #55
+description=Slide a rolling paint object through maze corridors until every reachable floor tile is colored.
 launch=index.html
 owner=2712e04e-461b-4d23-81ae-e40b429128a8
 server=server.js
