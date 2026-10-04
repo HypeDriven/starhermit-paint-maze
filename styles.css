@@ -160,3 +160,7 @@ body[data-screen="game"] .sync { bottom: auto; top: max(8px, env(safe-area-inset
 .world[data-world="gallery"] { --accent: #2f8cff; }
 .world[data-world="workshop"] { --accent: #d97f06; }
 .world[data-world="atelier"] { --accent: #0e9f71; }
+
+/* StarHermit invite/sign-out toast */
+.toast { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; max-width: min(90vw, 420px); padding: 10px 16px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); text-align: center; }
+.toast[hidden], .row .btn[hidden] { display: none; }

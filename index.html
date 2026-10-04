@@ -11,6 +11,7 @@
 <title>Paint Maze</title>
 <link rel="stylesheet" href="styles.css">
 <script src="browser-guard.js"></script>
+<script src="starhermit-sdk.js"></script>
 <script type="module" src="src/main.js"></script>
 </head>
 <body data-screen="title">
@@ -27,6 +28,10 @@
         <button id="btn-levels" class="btn" data-i18n="levels"></button>
         <button id="btn-howto" class="btn" data-i18n="howTo"></button>
         <button id="btn-settings" class="btn" data-i18n="settings"></button>
+      </div>
+      <div class="row">
+        <button id="btn-signin" class="btn" data-i18n="shSignIn" hidden></button>
+        <button id="btn-invite" class="btn" data-i18n="shInvite" hidden></button>
       </div>
       <p id="title-stars" class="muted"></p>
       <p id="load-error" class="error" role="alert" hidden></p>
@@ -97,6 +102,7 @@
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="howto-title">
     <h2 id="howto-title" data-i18n="howTo"></h2>
     <p data-i18n="howToBody"></p>
+    <p id="howto-keys" class="muted"></p>
     <button class="btn primary close-overlay" data-i18n="close"></button>
   </div>
 </div>
@@ -126,5 +132,6 @@
 </div>
 
 <div id="sync" class="sync" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
 </body>
 </html>

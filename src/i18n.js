@@ -7,6 +7,7 @@ export const LOCALE_NAMES = {
 };
 
 const en = {
+  shSignIn: 'Sign in with StarHermit', shInvite: 'Invite a friend', shCopied: 'Invite link copied to the clipboard.', shCopyFailed: 'Could not copy the invite link.', shSignedOut: 'Signed out — playing locally.',
   tagline: 'Roll the paint. Cover every tile.',
   play: 'Play', continue: 'Continue', levels: 'Levels', settings: 'Settings', howTo: 'How to play',
   back: 'Back', close: 'Close', done: 'Done', menu: 'Menu',
@@ -39,10 +40,12 @@ const T = {
   'en-US': en,
   'en-GB': {
     ...en,
+    shCopyFailed: 'Couldn’t copy the invite link.',
     tut3: 'Plan your route. Rolling over painted tiles is fine, but every roll counts against par.',
     allDone: 'Every maze is painted. Lovely work!',
   },
   'es-419': {
+    shSignIn: 'Iniciar sesión con StarHermit', shInvite: 'Invitar a un amigo', shCopied: 'Enlace de invitación copiado al portapapeles.', shCopyFailed: 'No se pudo copiar el enlace de invitación.', shSignedOut: 'Sesión cerrada: juegas en modo local.',
     tagline: 'Rueda la pintura. Cubre cada casilla.',
     play: 'Jugar', continue: 'Continuar', levels: 'Niveles', settings: 'Ajustes', howTo: 'Cómo jugar',
     back: 'Atrás', close: 'Cerrar', done: 'Listo', menu: 'Menú',
@@ -72,6 +75,7 @@ const T = {
   },
   'es-ES': null, // filled below from es-419 with Spain-specific overrides
   'de-DE': {
+    shSignIn: 'Mit StarHermit anmelden', shInvite: 'Freund einladen', shCopied: 'Einladungslink in die Zwischenablage kopiert.', shCopyFailed: 'Einladungslink konnte nicht kopiert werden.', shSignedOut: 'Abgemeldet – du spielst lokal weiter.',
     tagline: 'Roll die Farbe. Bedecke jedes Feld.',
     play: 'Spielen', continue: 'Weiter', levels: 'Level', settings: 'Einstellungen', howTo: 'Anleitung',
     back: 'Zurück', close: 'Schließen', done: 'Fertig', menu: 'Menü',
@@ -100,6 +104,7 @@ const T = {
     loadError: 'Die Level konnten nicht geladen werden. Prüfe deine Verbindung und lade neu.',
   },
   'fr-FR': {
+    shSignIn: 'Se connecter avec StarHermit', shInvite: 'Inviter un ami', shCopied: 'Lien d’invitation copié dans le presse-papiers.', shCopyFailed: 'Impossible de copier le lien d’invitation.', shSignedOut: 'Déconnecté — vous jouez en local.',
     tagline: 'Faites rouler la peinture. Couvrez chaque case.',
     play: 'Jouer', continue: 'Continuer', levels: 'Niveaux', settings: 'Paramètres', howTo: 'Comment jouer',
     back: 'Retour', close: 'Fermer', done: 'OK', menu: 'Menu',
@@ -129,6 +134,7 @@ const T = {
   },
   'fr-CA': null, // filled below from fr-FR with Canadian overrides
   'pt-BR': {
+    shSignIn: 'Entrar com StarHermit', shInvite: 'Convidar um amigo', shCopied: 'Link de convite copiado para a área de transferência.', shCopyFailed: 'Não foi possível copiar o link de convite.', shSignedOut: 'Sessão encerrada — jogando localmente.',
     tagline: 'Role a tinta. Cubra cada casa.',
     play: 'Jogar', continue: 'Continuar', levels: 'Fases', settings: 'Configurações', howTo: 'Como jogar',
     back: 'Voltar', close: 'Fechar', done: 'Pronto', menu: 'Menu',
@@ -157,6 +163,7 @@ const T = {
     loadError: 'Não foi possível carregar as fases. Verifique sua conexão e recarregue.',
   },
   'it-IT': {
+    shSignIn: 'Accedi con StarHermit', shInvite: 'Invita un amico', shCopied: 'Link di invito copiato negli appunti.', shCopyFailed: 'Impossibile copiare il link di invito.', shSignedOut: 'Disconnesso: giochi in locale.',
     tagline: 'Fai rotolare la vernice. Copri ogni casella.',
     play: 'Gioca', continue: 'Continua', levels: 'Livelli', settings: 'Impostazioni', howTo: 'Come si gioca',
     back: 'Indietro', close: 'Chiudi', done: 'Fatto', menu: 'Menu',
@@ -188,6 +195,7 @@ const T = {
 
 T['es-ES'] = {
   ...T['es-419'],
+  shCopyFailed: 'No se ha podido copiar el enlace de invitación.', shSignedOut: 'Sesión cerrada: juegas en local.',
   settings: 'Ajustes', 'dir.L': 'a la izquierda',
   tut1: 'Desliza, pulsa una flecha del teclado o toca una flecha para rodar. La bola rueda hasta chocar con una pared.',
   tutWorld: 'Llegan laberintos más grandes. ¿Atascado? La pista muestra el siguiente tiro desde donde estás.',

@@ -8,7 +8,72 @@ import { loadProfile, saveProfile, recordResult, cloudDoc, mergeRemote } from '.
 import * as platform from './platform.js';
 
 const $ = (id) => document.getElementById(id);
-const DIR_OF_KEY = { ArrowUp: 'U', ArrowDown: 'D', ArrowLeft: 'L', ArrowRight: 'R', w: 'U', s: 'D', a: 'L', d: 'R' };
+// Keyboard actions by KeyboardEvent.code, mirrored as control.* lines in
+// starhermit.txt; the player's StarHermit rebinds replace these at boot.
+const KEY_DEFAULTS = {
+  rollUp: ['ArrowUp', 'KeyW'], rollDown: ['ArrowDown', 'KeyS'], rollLeft: ['ArrowLeft', 'KeyA'], rollRight: ['ArrowRight', 'KeyD'],
+  undo: ['KeyU', 'KeyZ'], restart: ['KeyR'], hint: ['KeyH'], back: ['Escape'],
+};
+const DIR_OF_ACTION = { rollUp: 'U', rollDown: 'D', rollLeft: 'L', rollRight: 'R' };
+let keys = JSON.parse(JSON.stringify(KEY_DEFAULTS));
+const keyAction = (code) => Object.keys(keys).find((a) => keys[a].includes(code)) || null;
+function keyLabel(code) {
+  const named = { Escape: 'Esc', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Space: 'Space' };
+  return named[code] || String(code || '').replace(/^Key/, '').replace(/^Digit/, '');
+}
+// How-to card: the effective keys, labelled with already-localized words.
+function renderKeys() {
+  const el = $('howto-keys');
+  if (!el) return;
+  const k = (a) => keys[a].map(keyLabel).join('/');
+  el.textContent = [
+    ...['U', 'D', 'L', 'R'].map((d) => `${t('rollAria', { dir: t('dir.' + d) })}: ${k('roll' + { U: 'Up', D: 'Down', L: 'Left', R: 'Right' }[d])}`),
+    `${t('undo')}: ${k('undo')}`, `${t('restart')}: ${k('restart')}`, `${t('hint')}: ${k('hint')}`, `${t('menu')}: ${k('back')}`,
+  ].join(' · ');
+}
+
+// Player preferences mirrored to the StarHermit settings KV.
+const KV_KEYS = ['locale', 'volume', 'reducedMotion', 'gfx'];
+function pushPlatformSettings() {
+  if (!game.hosted) return;
+  const s = game.profile.settings;
+  platform.patchSettings(Object.fromEntries(KV_KEYS.map((k) => [k, s[k] ?? null])));
+}
+// The account's preferences win over the local copy at boot.
+async function loadPlatformSettings() {
+  const kv = await platform.getSettings();
+  if (!kv) return;
+  const s = game.profile.settings;
+  let changed = false;
+  for (const k of KV_KEYS) if (kv[k] !== undefined && kv[k] !== null) { s[k] = kv[k]; changed = true; }
+  if (!changed) return;
+  saveProfile(game.profile);
+  setLocale(s.locale || matchLocale(navigator.language));
+  game.audio.setVolume(s.volume ?? 0.7);
+  applyGraphics();
+  applyMotion();
+  applyI18n();
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 3200);
+}
+// Title account buttons: sign-in only where the platform offers it, invite only when signed in.
+function refreshAccount() {
+  $('btn-signin').hidden = !platform.canSignIn();
+  $('btn-invite').hidden = !platform.inviteLink();
+}
+async function copyInvite() {
+  const link = platform.inviteLink();
+  if (!link) return;
+  try { await navigator.clipboard.writeText(link); toast(t('shCopied')); }
+  catch { toast(t('shCopyFailed')); }
+}
 
 const game = {
   levels: [], worlds: [],
@@ -52,7 +117,18 @@ async function boot() {
       if (document.body.dataset.screen === 'levels') renderLevels();
     },
     onSync: showSync,
+    onAuth: (a) => {
+      game.hosted = a.signedIn;
+      if (!a.signedIn) { $('hello').hidden = true; toast(t('shSignedOut')); }
+      refreshAccount();
+    },
   });
+  refreshAccount();
+  renderKeys();
+  if (game.hosted) {
+    loadPlatformSettings();
+    platform.loadBindings(KEY_DEFAULTS).then((b) => { keys = b; renderKeys(); });
+  }
   try {
     const res = await fetch('data/levels.json');
     if (!res.ok) throw new Error(res.status);
@@ -334,7 +410,7 @@ function applyMotion() {
   $('set-motion').checked = on;
 }
 
-function saveSettings() { persist(); }
+function saveSettings() { persist(); pushPlatformSettings(); }
 
 function renderSettings() {
   const s = game.profile.settings;
@@ -400,7 +476,9 @@ function showSync(status) {
 function bindUi() {
   $('btn-play').addEventListener('click', () => { game.audio.unlock(); startLevel(nextLevelIndex()); });
   $('btn-levels').addEventListener('click', () => { game.audio.unlock(); renderLevels(); showScreen('levels'); });
-  $('btn-howto').addEventListener('click', () => openOverlay('howto'));
+  $('btn-howto').addEventListener('click', () => { renderKeys(); openOverlay('howto'); });
+  $('btn-signin').addEventListener('click', () => platform.signIn());
+  $('btn-invite').addEventListener('click', copyInvite);
   const openSettings = () => { renderSettings(); selectTab('general'); openOverlay('settings'); };
   $('btn-settings').addEventListener('click', openSettings);
   $('btn-settings-game').addEventListener('click', openSettings);
@@ -454,19 +532,19 @@ function bindUi() {
   document.addEventListener('keydown', (e) => {
     if (e.target.closest('select, input')) return;
     const ov = anyOverlay();
-    if (e.key === 'Escape') {
+    const act = keyAction(e.code);
+    if (act === 'back') {
       if (ov && ov.id !== 'overlay-complete') { ov.hidden = true; e.preventDefault(); }
       else if (!ov && document.body.dataset.screen === 'game') { renderLevels(); showScreen('levels'); }
       else if (!ov && document.body.dataset.screen === 'levels') { refreshTitle(); showScreen('title'); }
       return;
     }
     if (ov || document.body.dataset.screen !== 'game' || e.ctrlKey || e.metaKey || e.altKey) return;
-    const dir = DIR_OF_KEY[e.key] || DIR_OF_KEY[e.key.toLowerCase()];
+    const dir = DIR_OF_ACTION[act];
     if (dir) { e.preventDefault(); clearHintMarks(); roll(dir); return; }
-    const k = e.key.toLowerCase();
-    if (k === 'u' || (k === 'z')) undo();
-    else if (k === 'r') restart();
-    else if (k === 'h') hint();
+    if (act === 'undo') undo();
+    else if (act === 'restart') restart();
+    else if (act === 'hint') hint();
   });
 
   // Swipe or tap on the board: swipes roll that way; a tap in line with the ball rolls toward it.

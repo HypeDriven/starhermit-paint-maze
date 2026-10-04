@@ -22,12 +22,12 @@ There are 60 levels in `data/levels.json`, grouped into four worlds of 15: Studi
 
 ## Screens and controls
 
-- **Title:** Play (reads "Continue" once there is progress), Levels, How to play, Settings, and the total star count. When hosted, it also shows "Hi, {nickname}". Play resumes the level in progress, or opens the first unfinished level.
+- **Title:** Play (reads "Continue" once there is progress), Levels, How to play, Settings, and the total star count. When hosted, it also shows "Hi, {nickname}" and **Invite a friend**; on `*.starhermit.com` without a token it shows **Sign in with StarHermit**. Play resumes the level in progress, or opens the first unfinished level.
 - **Levels:** one section per world showing its star total. Each level button shows its stars and marks the current level; locked levels show a lock and are disabled.
 - **Game:** a top bar with Levels (☰), a "World · n" title and Settings (⚙), and a HUD with Moves, Par, Left and the star rating so far. Below that are the board and the controls: four arrow buttons (arrows toward walls are disabled), Undo, Restart and Hint.
   - Phones in portrait: the controls sit in a thumb row under the board.
   - Wide desktops and phones in landscape: the controls form a column to the right of the board, with the arrows in a cross.
-- **Input:** the on-screen arrows, the arrow keys or W A S D, and a swipe on the board (at least 24 px). Tapping a tile in the same row or column as the ball rolls toward it. U or Z undoes, R restarts, H shows a hint, and Esc closes a dialog or goes back a screen.
+- **Input:** the on-screen arrows, the arrow keys or W A S D, and a swipe on the board (at least 24 px). Tapping a tile in the same row or column as the ball rolls toward it. U or Z undoes, R restarts, H shows a hint, and Esc closes a dialog or goes back a screen. Keys are matched by `KeyboardEvent.code`; on StarHermit the player's rebinds apply, and How to play lists the effective keys.
   - Each roll updates the game state immediately and its animation is queued, so fast input is never lost.
   - Undo, Restart and Hint are disabled while an animation is playing.
 - **Instructions:** levels 1–3 show a tip card explaining how rolling works, painting, and planning for par. The first Gallery level has a tip about bigger mazes and Hint. "How to play" is available from the title screen.
@@ -78,16 +78,19 @@ All UI text comes from `src/i18n.js` in en-US, en-GB, es-419, es-ES, de-DE, fr-F
 
 ## StarHermit integration
 
-`src/platform.js` works as follows:
+All platform traffic goes through the shared SDK `starhermit-sdk.js` (an unmodified copy of the canonical client, loaded before `src/main.js` as `window.StarHermit`); `src/platform.js` adapts it. `starhermit.txt` declares `name`, `description`, `launch`, `owner`, `cover` and one `control.<action>=<codes> | <label>` line per keyboard action.
 
-- **Launch token:** read once from the `#game_token` URL fragment and then stripped.
-- **Identity:** the nickname comes from `/api/v1/users/{sub}/profile` and is shown on the title screen. The username is never shown.
-- **Token refresh:** the launch token is refreshed every 45 minutes.
-- **Cloud save:** progress, the level in progress and tips seen are mirrored to the cloud-save slot as a zip, base64-encoded. Saves are debounced by 2 s and flushed on `pagehide` or when the page is hidden. A pill shows Saving… / Saved to cloud / an error.
+- **Launch token:** `StarHermit.init()` reads `#game_token=` (library launch) or `#access_token=` (direct sign-in return) once and strips it; the slug is the `game_scope` claim. The SDK renews the token before expiry. If renewal is refused the greeting hides, a "signed out — playing locally" toast shows, sign-in is re-offered and play continues locally.
+- **Sign-in:** on `*.starhermit.com` without a token the title shows **Sign in with StarHermit** (`StarHermit.signIn()`); hidden when signed in and when running locally.
+- **Identity:** the profile nickname (fallback `Player ` + id prefix) is shown on the title screen.
+- **Cloud save:** progress, the level in progress and tips seen are mirrored to the `game:<slug>` slot. Saves are debounced by 2 s and flushed on `pagehide` or when the page is hidden. A pill shows Saving… / Saved to cloud / an error.
 - **Merging:** on launch, the remote document is merged in. The best moves and most stars per level win, and the remote level in progress is preferred.
-- **Offline:** without a token, the game runs entirely offline.
+- **Settings KV:** language, volume, Reduce motion and the graphics settings are patched to the per-player settings store on change and applied at boot (the account value wins).
+- **Controls:** keyboard input routes through `StarHermit.loadBindings()` (platform rebinds over the `control.*` defaults).
+- **Invite:** **Invite a friend** copies `StarHermit.inviteLink()` to the clipboard and confirms with a toast.
+- **Offline:** without a token, the game runs entirely offline and makes no request.
 
-There is no server script.
+There is no server script, so sessions, matchmaking, chat, leaderboards, achievements and replays are not used.
 
 ## Files
 
@@ -113,7 +116,7 @@ There is no server script.
   - storage and cloud merge
   - every locale has every key with matching placeholders
 - `npm run test:e2e` drives the visible UI in Chrome at 1280×800, 390×844 (touch) and 844×390 (touch). It solves levels with the on-screen arrows, keys, swipe and tile taps, and exercises How to play, Undo, Hint, Restart, resume after reload, level select state, and the language and graphics settings with persistence. It fails on any console error or warning, failed request, or control outside the viewport.
-- `npm run test:hosted` checks the StarHermit flow against a fake API.
+- `npm run test:hosted` checks the StarHermit flow (token strip, nickname, `game:<slug>` cloud save, restore) against a fake API.
 
 ## Browser interference
 

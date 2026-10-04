@@ -2,7 +2,7 @@
  * Paint Maze — hosted-mode (StarHermit) integration test (dev only, not shipped).
  *
  * Serves the repo with an embedded static server plus a fake platform /api
- * (profile, cloud save, launch-token refresh) and drives the real UI in
+ * (profile, `game:<slug>` cloud save, launch-token refresh) and drives the real UI in
  * headless Chrome (playwright-core + system Chrome) with a #game_token
  * launch fragment.
  *
@@ -31,7 +31,7 @@ const b64url = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = `${b64url({ alg: 'none' })}.${b64url({ sub: 'u-1234-abcd-9999', game_scope: 'paint-maze' })}.sig`;
 
 const server = http.createServer((req, res) => {
-	const url = req.url.split('?')[0];
+	const url = decodeURIComponent(req.url.split('?')[0]);
 	const auth = req.headers.authorization || '';
 	if (url.startsWith('/api/')) {
 		calls.push({ method: req.method, url, auth });
@@ -45,7 +45,7 @@ const server = http.createServer((req, res) => {
 			res.end(JSON.stringify({ token: jwt + '2' }));
 			return;
 		}
-		if (url === '/api/v1/me/cloud-saves/paint-maze') {
+		if (url === '/api/v1/me/cloud-saves/game:paint-maze') {
 			if (req.method === 'GET') {
 				if (!cloudZip) { res.writeHead(404); res.end(); return; }
 				res.writeHead(200, { 'Content-Type': 'application/zip' });
@@ -128,7 +128,7 @@ try {
 	await page.waitForFunction(() => document.getElementById('sync').dataset.status === 'synced', null, { timeout: 10000 });
 	check('sync status shown and reaches synced', true);
 
-	const put = calls.find((c) => c.method === 'PUT' && c.url === '/api/v1/me/cloud-saves/paint-maze');
+	const put = calls.find((c) => c.method === 'PUT' && c.url === '/api/v1/me/cloud-saves/game:paint-maze');
 	check('cloud save PUT issued to the game slot', !!put);
 	check('Bearer on cloud PUT', !!put && put.auth === 'Bearer ' + jwt, put && put.auth);
 	check('cloud save carries a zip payload', !!cloudZip && cloudZip.length > 30);
