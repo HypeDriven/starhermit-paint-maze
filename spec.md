@@ -23,10 +23,11 @@ There are 60 levels in `data/levels.json`, grouped into four worlds of 15: Studi
 ## Screens and controls
 
 - **Title:** Play (reads "Continue" once there is progress), Levels, How to play, Settings, and the total star count. When hosted, it also shows "Hi, {nickname}" and **Invite a friend**; on `*.starhermit.com` without a token it shows **Sign in with StarHermit**. Play resumes the level in progress, or opens the first unfinished level.
-- **Levels:** one section per world showing its star total. Each level button shows its stars and marks the current level; locked levels show a lock and are disabled.
+- **Levels:** one section per world showing its star total, in a centred column at most 68 rem wide (fifteen buttons per row on desktop). Each level button shows its stars and marks the current level; locked levels show a lock and are disabled.
 - **Game:** a top bar with Levels (☰), a "World · n" title and Settings (⚙), and a HUD with Moves, Par, Left and the star rating so far. Below that are the board and the controls: four arrow buttons (arrows toward walls are disabled), Undo, Restart and Hint.
   - Phones in portrait: the controls sit in a thumb row under the board.
   - Wide desktops and phones in landscape: the controls form a column to the right of the board, with the arrows in a cross.
+  - Large screens (above 1600×1000): `ui-scale.js` sets `--ui-scale` (`min(w/1600, h/1000)`, capped at 2.5) and the whole page is CSS-`zoom`ed by it (dvh/vw lengths divided by it); the board's tile-size cap and padding grow by the same factor, so the layout matches a 1600×1000 window magnified.
 - **Input:** the on-screen arrows, the arrow keys or W A S D, and a swipe on the board (at least 24 px). Tapping a tile in the same row or column as the ball rolls toward it. U or Z undoes, R restarts, H shows a hint, and Esc closes a dialog or goes back a screen. Keys are matched by `KeyboardEvent.code`; on StarHermit the player's rebinds apply, and How to play lists the effective keys.
   - Each roll updates the game state immediately and its animation is queued, so fast input is never lost.
   - Undo, Restart and Hint are disabled while an animation is playing.

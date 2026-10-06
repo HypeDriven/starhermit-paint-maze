@@ -13,6 +13,9 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
+/* Large screens: ui-scale.js sets --ui-scale (1 up to 1600x1000); the whole page zooms by it
+   (vw/dvh lengths are divided by it) and the board's tile cap grows with it in render.js. */
+body { zoom: var(--ui-scale, 1); }
 body {
   background: linear-gradient(180deg, var(--bg), var(--bg2));
   color: var(--ink);
@@ -24,7 +27,7 @@ body[data-world="gallery"] { --bg: #eef4fc; --bg2: #dde7f5; --accent: #2f8cff; -
 body[data-world="workshop"] { --bg: #fbf6ea; --bg2: #efe4cf; --accent: #d97f06; --line: #e3d7bf; }
 body[data-world="atelier"] { --bg: #eaf6f2; --bg2: #d6ebe4; --accent: #0e9f71; --line: #cfe2db; }
 
-#app { height: 100dvh; display: flex; flex-direction: column; }
+#app { height: calc(100dvh / var(--ui-scale, 1)); display: flex; flex-direction: column; }
 .screen { display: none; flex: 1; min-height: 0; flex-direction: column;
   padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
 .screen.active { display: flex; }
@@ -53,7 +56,7 @@ h1, h2 { margin: 0; }
 /* ---------- title ---------- */
 #screen-title { align-items: center; justify-content: center; overflow-y: auto; }
 .title-card { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; max-width: 30rem; }
-#title-heading { font-size: clamp(2.2rem, 8vw, 3.4rem); letter-spacing: -.02em; }
+#title-heading { font-size: clamp(2.2rem, calc(8vw / var(--ui-scale, 1)), 3.4rem); letter-spacing: -.02em; }
 .tagline { margin: 0; font-size: 1.1rem; color: var(--muted); }
 .logo { display: grid; grid-template-columns: repeat(2, 38px); gap: 6px; }
 .logo span { width: 38px; height: 38px; border-radius: 9px; background: #ff5a5f; animation: pop 2.4s ease-in-out infinite; }
@@ -68,7 +71,7 @@ h1, h2 { margin: 0; }
 .pill { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-weight: 600; white-space: nowrap; }
 
 /* ---------- level select ---------- */
-.world-list { flex: 1; overflow-y: auto; padding: 6px 2px 16px; display: flex; flex-direction: column; gap: 18px; }
+.world-list { flex: 1; overflow-y: auto; padding: 6px 2px 16px; width: 100%; max-width: 68rem; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
 .world h3 { margin: 0 0 8px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 1.05rem; }
 .world h3 small { color: var(--muted); font-weight: 500; }
 .level-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; }
@@ -162,5 +165,5 @@ body[data-screen="game"] .sync { bottom: auto; top: max(8px, env(safe-area-inset
 .world[data-world="atelier"] { --accent: #0e9f71; }
 
 /* StarHermit invite/sign-out toast */
-.toast { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; max-width: min(90vw, 420px); padding: 10px 16px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); text-align: center; }
+.toast { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; max-width: min(calc(90vw / var(--ui-scale, 1)), 420px); padding: 10px 16px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); text-align: center; }
 .toast[hidden], .row .btn[hidden] { display: none; }

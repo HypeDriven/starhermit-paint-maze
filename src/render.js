@@ -82,8 +82,10 @@ export class Renderer {
     this.canvas.height = Math.round(rect.height * this.dpr);
     this.cssW = rect.width;
     this.cssH = rect.height;
-    const pad = 12;
-    this.tile = Math.max(8, Math.floor(Math.min(84, (rect.width - pad * 2) / this.board.w, (rect.height - pad * 2 - 8) / this.board.h)));
+    // rect is in visual px (the page may be CSS-zoomed by ui-scale.js), so the caps scale with it
+    const ui = (globalThis.UIScale && globalThis.UIScale.value) || 1;
+    const pad = 12 * ui;
+    this.tile = Math.max(8, Math.floor(Math.min(84 * ui, (rect.width - pad * 2) / this.board.w, (rect.height - pad * 2 - 8) / this.board.h)));
     this.ox = Math.round((rect.width - this.tile * this.board.w) / 2);
     this.oy = Math.round((rect.height - this.tile * this.board.h - Math.max(4, this.tile * 0.2)) / 2);
     Object.assign(this.canvas.dataset, { tile: this.tile, ox: this.ox, oy: this.oy });
