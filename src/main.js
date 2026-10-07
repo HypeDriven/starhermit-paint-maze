@@ -334,6 +334,22 @@ function roll(dir) {
   });
 }
 
+// Hosted only: post the total star count to the platform board after each
+// finished level and show the rank in the finish dialog.
+let lbSeq = 0;
+function postStars(level) {
+  const line = $('complete-lb');
+  const seq = ++lbSeq;
+  line.hidden = true;
+  if (!platform.hosted()) return;
+  line.hidden = false;
+  line.textContent = t('lbPosting');
+  platform.submitStars(totalStars()).then((r) => {
+    if (seq !== lbSeq || game.level !== level) return;
+    line.textContent = !r.posted ? t('lbNotPosted') : r.rank ? t('lbRank', { rank: r.rank }) : t('lbPosted');
+  });
+}
+
 function finish() {
   const { level, state } = game;
   const stars = rules.starsFor(state.moves, level.par);
@@ -353,6 +369,7 @@ function finish() {
   $('complete-extra').textContent = last ? t('allDone') : hadRecord && newBest ? t('newBest') : '';
   $('btn-next').hidden = last;
   document.body.dataset.stars = stars;
+  postStars(level);
   setTimeout(() => { if (game.finished && game.level === level) openOverlay('complete'); }, game.renderer.reducedMotion ? 150 : 750);
 }
 

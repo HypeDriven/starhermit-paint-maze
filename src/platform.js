@@ -101,7 +101,22 @@ const canSignIn = () => { const s = sdk(); return !!(s && s.canSignIn()); };
 const signIn = () => { const s = sdk(); return !!(s && s.signIn()); };
 const inviteLink = () => (hosted() ? sdk().inviteLink() : null);
 
+// Post the player's total stars to the platform board through the game's
+// score script (score-script.js). Resolves { posted, rank } — rank on the
+// total-stars board, or null. Standalone: no request.
+async function submitStars(total) {
+	if (!hosted()) return { posted: false, rank: null };
+	const s = sdk();
+	const keys = await s.submitScores({ 'total-stars': total });
+	if (!keys.includes('total-stars')) return { posted: false, rank: null };
+	try {
+		const r = await s.leaderboard('total-stars', { pageSize: 100 });
+		const me = ((r && r.items) || []).find((i) => i.userId === s.userId);
+		return { posted: true, rank: me ? me.rank : null };
+	} catch (e) { return { posted: true, rank: null }; }
+}
+
 export {
-	boot, pushCloud, flushCloud, hosted,
+	boot, pushCloud, flushCloud, hosted, submitStars,
 	getSettings, patchSettings, loadBindings, canSignIn, signIn, inviteLink
 };

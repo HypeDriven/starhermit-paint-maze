@@ -32,7 +32,7 @@ There are 60 levels in `data/levels.json`, grouped into four worlds of 15: Studi
   - Each roll updates the game state immediately and its animation is queued, so fast input is never lost.
   - Undo, Restart and Hint are disabled while an animation is playing.
 - **Instructions:** levels 1–3 show a tip card explaining how rolling works, painting, and planning for par. The first Gallery level has a tip about bigger mazes and Hint. "How to play" is available from the title screen.
-- **Finish:** the paint ripples across the board with confetti, then a dialog shows the stars and "{moves} moves · par {par}", with Replay, Levels and Next level. Focus starts on Next level, so Enter continues.
+- **Finish:** the paint ripples across the board with confetti, then a dialog shows the stars and "{moves} moves · par {par}" (plus the leaderboard line when signed in), with Replay, Levels and Next level. Focus starts on Next level, so Enter continues.
   - The last level of a world says "{World} complete!".
   - The last level of the game says that every maze is painted.
   - Beating an earlier result says "New best!".
@@ -79,7 +79,7 @@ All UI text comes from `src/i18n.js` in en-US, en-GB, es-419, es-ES, de-DE, fr-F
 
 ## StarHermit integration
 
-All platform traffic goes through the shared SDK `starhermit-sdk.js` (an unmodified copy of the canonical client, loaded before `src/main.js` as `window.StarHermit`); `src/platform.js` adapts it. `starhermit.txt` declares `name`, `description`, `launch`, `owner`, `cover` and one `control.<action>=<codes> | <label>` line per keyboard action.
+All platform traffic goes through the shared SDK `starhermit-sdk.js` (an unmodified copy of the canonical client, loaded before `src/main.js` as `window.StarHermit`); `src/platform.js` adapts it. `starhermit.txt` declares `name`, `description`, `launch`, `owner`, `server=score-script.js`, `cover` and one `control.<action>=<codes> | <label>` line per keyboard action.
 
 - **Launch token:** `StarHermit.init()` reads `#game_token=` (library launch) or `#access_token=` (direct sign-in return) once and strips it; the slug is the `game_scope` claim. The SDK renews the token before expiry. If renewal is refused the greeting hides, a "signed out — playing locally" toast shows, sign-in is re-offered and play continues locally.
 - **Sign-in:** on `*.starhermit.com` without a token the title shows **Sign in with StarHermit** (`StarHermit.signIn()`); hidden when signed in and when running locally.
@@ -89,9 +89,10 @@ All platform traffic goes through the shared SDK `starhermit-sdk.js` (an unmodif
 - **Settings KV:** language, volume, Reduce motion and the graphics settings are patched to the per-player settings store on change and applied at boot (the account value wins).
 - **Controls:** keyboard input routes through `StarHermit.loadBindings()` (platform rebinds over the `control.*` defaults).
 - **Invite:** **Invite a friend** copies `StarHermit.inviteLink()` to the clipboard and confirms with a toast.
-- **Offline:** without a token, the game runs entirely offline and makes no request.
+- **Leaderboard:** after every finished level, a signed-in player's total star count (all levels) is posted through `StarHermit.submitScores` to the `total-stars` board (integer, higher is better, 0–180). The platform script `score-script.js` (canonical copy in the games repo's `tools/score-script.js`) accepts it on a practice session, range-checks it and posts it. The finish dialog shows "Leaderboard rank: #N" (or posted / not posted) under the move count.
+- **Offline:** without a token, the game runs entirely offline, makes no request and shows no leaderboard line.
 
-There is no server script, so sessions, matchmaking, chat, leaderboards, achievements and replays are not used.
+Matchmaking, chat, achievements and replays are not used.
 
 ## Files
 
@@ -103,6 +104,7 @@ There is no server script, so sessions, matchmaking, chat, leaderboards, achieve
 | `src/main.js` | Screens, input, level flow, settings, persistence wiring |
 | `src/gfx.js` | Pure graphics-quality model |
 | `src/i18n.js`, `src/storage.js`, `src/audio.js`, `src/platform.js` | Strings, profile/cloud doc, sound, StarHermit adapter |
+| `score-script.js` | StarHermit platform script (`server=`): range-checks the posted total stars and posts them to the `total-stars` board |
 | `data/levels.json` | The 60 levels, with par and optimal solution |
 | `tools/generate-levels.mjs`, `tools/serve.mjs` | Level generator, dev static server (`npm start`) |
 | `tests/` | Unit tests, `e2e.mjs`, `hosted.mjs` |
