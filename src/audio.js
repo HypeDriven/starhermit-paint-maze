@@ -42,7 +42,7 @@ export class Audio {
   play(event, { rate = 1, gain = 1 } = {}) {
     const buf = this.buffers.get(SFX[event]);
     if (!this.ctx || !buf || this.volume === 0) return;
-    const src = this.ctx.createBufferSource();
+    const src = (globalThis.GameOptions ? globalThis.GameOptions.trackSource(this.ctx.createBufferSource(), event) : this.ctx.createBufferSource());
     src.buffer = buf;
     src.playbackRate.value = rate;
     const g = this.ctx.createGain();
