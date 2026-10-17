@@ -13,6 +13,7 @@
 <script src="ui-scale.js"></script>
 <link rel="stylesheet" href="styles.css">
 <script src="browser-guard.js"></script>
+<script src="sh-language.js"></script>
 <script src="starhermit-sdk.js"></script>
 <script type="module" src="src/main.js"></script>
 </head>
@@ -119,6 +120,7 @@
     </div>
     <div id="panel-general" role="tabpanel" aria-labelledby="tab-general">
       <label class="field"><span data-i18n="language"></span><select id="set-locale"></select></label>
+      <p id="set-locale-status" class="muted" role="status"></p>
       <label class="field"><span data-i18n="volume"></span><input id="set-volume" type="range" min="0" max="100" step="5"></label>
       <label class="field check"><input id="set-motion" type="checkbox"><span data-i18n="reducedMotion"></span></label>
     </div>

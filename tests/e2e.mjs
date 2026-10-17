@@ -12,7 +12,9 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import os from 'node:os';
 import { chromium } from 'playwright-core';
+import { stubStarHermit, launchToken } from './starhermit-e2e.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LEVELS = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/levels.json'))).levels;
@@ -32,6 +34,8 @@ await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const BASE = `http://127.0.0.1:${server.address().port}/`;
 
 const ok = (msg) => console.log(`ok - ${msg}`);
+// Language-step screenshots go to E2E_SHOT_DIR (default: the OS temp dir).
+const LANG_SHOT = (name) => path.join(process.env.E2E_SHOT_DIR || os.tmpdir(), `paint-maze-e2e-${name}.png`);
 const fail = (msg) => { throw new Error(msg); };
 const body = (page, key) => page.evaluate((k) => document.body.dataset[k], key);
 
@@ -207,6 +211,52 @@ async function run(browser, name, ctxOpts, { full }) {
     if (await page.inputValue('#gfx-cats select[data-cat="glow"]') !== '') fail('choosing a preset did not clear overrides');
     await page.keyboard.press('Escape');
     ok(`${name}: settings — language switch, graphics presets/overrides/FPS persist, preset clears overrides`);
+  }
+
+  if (name !== 'landscape') {
+    // Language: the account's preferred fr-CA drives Automatic; a choice mid-level
+    // re-renders everything in place, is saved as ui.language; Report a problem posts.
+    const calls = await stubStarHermit(page, { preferredLanguage: 'fr-CA' });
+    await page.goto('about:blank');
+    await page.goto(BASE + 'index.html#game_token=' + launchToken());
+    await page.waitForSelector('body[data-ready="true"]');
+    await page.waitForFunction(() => document.documentElement.lang === 'fr-CA');
+    if (!/^(Jouer|Continuer)$/.test(await page.textContent('#btn-play'))) fail('title not in French');
+    await page.click('#btn-play');
+    await page.waitForSelector('#screen-game.active');
+    await press(page, await page.evaluate(() => [...document.querySelectorAll('.dir')].find((b) => !b.disabled).dataset.dir), touch);
+    await page.waitForFunction(() => Number(document.body.dataset.moves) >= 1);
+    const moves = await body(page, 'moves');
+    await page.click('#btn-settings-game');
+    await page.waitForSelector('#overlay-settings:not([hidden])');
+    const auto = await page.locator('#set-locale option').first().textContent();
+    if (auto !== 'Automatique — Français (Canada)') fail('Automatic label not resolved: ' + auto);
+    if (await page.locator('[data-game-language="choice"]').count()) fail('two language selectors');
+    await page.selectOption('#set-locale', 'de-DE');
+    await page.waitForFunction(() => document.documentElement.lang === 'de-DE');
+    await page.waitForFunction(() => /Im Konto gespeichert/.test(document.getElementById('set-locale-status').textContent));
+    if (calls.settings['ui.language']?.choice !== 'de-DE') fail('ui.language not saved: ' + JSON.stringify(calls.settings));
+    if ((await page.textContent('#settings-title')) !== 'Einstellungen') fail('settings not re-rendered');
+    if ((await page.textContent('#screen-game .hud span[data-i18n="moves"]')) !== 'Züge') fail('HUD not re-rendered');
+    if (await page.isVisible('#tip') && !/Wisch|Pfeil|Feld|Rolle|Plane|Labyrinth|Tipp/.test(await page.textContent('#tip'))) fail('tip not re-rendered: ' + await page.textContent('#tip'));
+    await page.click('#tab-graphics');
+    await page.locator('[data-game-report="title"]').scrollIntoViewIfNeeded();
+    await page.fill('[data-game-report="title"]', 'Test report');
+    await page.click('[data-game-report="send"]');
+    await page.waitForFunction(() => /Bericht gesendet/.test(document.querySelector('[data-game-report="status"]').textContent));
+    if (!calls.reports?.[0] || calls.reports[0].kind !== 'bug') fail('report not posted');
+    await page.click('#tab-general');
+    await page.screenshot({ path: LANG_SHOT('settings-' + name) });
+    await page.click('#overlay-settings .close-overlay');
+    if ((await body(page, 'moves')) !== moves) fail('language change reset the level');
+    await assertVisibleControls(page, name, 'game-de');
+    await page.screenshot({ path: LANG_SHOT('game-' + name) });
+    await page.click('#btn-settings-game');
+    await page.selectOption('#set-locale', 'auto');
+    await page.waitForFunction(() => document.documentElement.lang === 'fr-CA');
+    await page.click('#overlay-settings .close-overlay');
+    await page.unroute(/\/api\/v1\//);
+    ok(`${name}: language — Automatic follows the StarHermit preference, a choice re-renders in place and syncs ui.language; report a problem`);
   }
 
   await context.close();

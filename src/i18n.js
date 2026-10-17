@@ -36,7 +36,7 @@ const en = {
   renderScale: 'Render scale', fromPreset: 'From preset ({v})', off: 'Off', on: 'On', 'opt.low': 'Low', 'opt.high': 'High',
   'cat.shadows': 'Shadows', 'cat.glow': 'Paint glow', 'cat.particles': 'Particles', 'cat.ambient': 'Ambient motion',
   adaptive: 'Adaptive resolution', showFps: 'Show frame rate', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'no effects',
-  syncSaving: 'Saving…', syncSynced: 'Saved to cloud', syncError: 'Cloud save failed. Retrying later.', hello: 'Hi, {name}',
+  syncSaving: 'Saving…', syncSynced: 'Saved to cloud', syncError: 'Cloud save failed. Retrying later.', hello: 'Hi, {name}', playerId: 'Player {id}',
   loadError: 'The levels could not be loaded. Check your connection and reload.',
 };
 
@@ -78,7 +78,7 @@ const T = {
     renderScale: 'Escala de renderizado', fromPreset: 'Según el ajuste ({v})', off: 'No', on: 'Sí', 'opt.low': 'Baja', 'opt.high': 'Alta',
     'cat.shadows': 'Sombras', 'cat.glow': 'Brillo de pintura', 'cat.particles': 'Partículas', 'cat.ambient': 'Movimiento ambiental',
     adaptive: 'Resolución adaptable', showFps: 'Mostrar FPS', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'sin efectos',
-    syncSaving: 'Guardando…', syncSynced: 'Guardado en la nube', syncError: 'Falló el guardado en la nube. Se reintentará.', hello: 'Hola, {name}',
+    syncSaving: 'Guardando…', syncSynced: 'Guardado en la nube', syncError: 'Falló el guardado en la nube. Se reintentará.', hello: 'Hola, {name}', playerId: 'Jugador {id}',
     loadError: 'No se pudieron cargar los niveles. Revisa tu conexión y recarga.',
   },
   'es-ES': null, // filled below from es-419 with Spain-specific overrides
@@ -112,7 +112,7 @@ const T = {
     renderScale: 'Renderskalierung', fromPreset: 'Laut Voreinstellung ({v})', off: 'Aus', on: 'An', 'opt.low': 'Niedrig', 'opt.high': 'Hoch',
     'cat.shadows': 'Schatten', 'cat.glow': 'Farbglanz', 'cat.particles': 'Partikel', 'cat.ambient': 'Umgebungsbewegung',
     adaptive: 'Adaptive Auflösung', showFps: 'Bildrate anzeigen', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'keine Effekte',
-    syncSaving: 'Speichern…', syncSynced: 'In der Cloud gespeichert', syncError: 'Cloud-Speichern fehlgeschlagen. Neuer Versuch später.', hello: 'Hallo, {name}',
+    syncSaving: 'Speichern…', syncSynced: 'In der Cloud gespeichert', syncError: 'Cloud-Speichern fehlgeschlagen. Neuer Versuch später.', hello: 'Hallo, {name}', playerId: 'Spieler {id}',
     loadError: 'Die Level konnten nicht geladen werden. Prüfe deine Verbindung und lade neu.',
   },
   'fr-FR': {
@@ -145,7 +145,7 @@ const T = {
     renderScale: 'Échelle de rendu', fromPreset: 'Selon le préréglage ({v})', off: 'Non', on: 'Oui', 'opt.low': 'Faible', 'opt.high': 'Élevé',
     'cat.shadows': 'Ombres', 'cat.glow': 'Éclat de la peinture', 'cat.particles': 'Particules', 'cat.ambient': 'Mouvement ambiant',
     adaptive: 'Résolution adaptative', showFps: 'Afficher les IPS', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'aucun effet',
-    syncSaving: 'Enregistrement…', syncSynced: 'Enregistré dans le cloud', syncError: 'Échec de l’enregistrement cloud. Nouvel essai plus tard.', hello: 'Bonjour, {name}',
+    syncSaving: 'Enregistrement…', syncSynced: 'Enregistré dans le cloud', syncError: 'Échec de l’enregistrement cloud. Nouvel essai plus tard.', hello: 'Bonjour, {name}', playerId: 'Joueur {id}',
     loadError: 'Impossible de charger les niveaux. Vérifiez votre connexion et rechargez.',
   },
   'fr-CA': null, // filled below from fr-FR with Canadian overrides
@@ -179,7 +179,7 @@ const T = {
     renderScale: 'Escala de renderização', fromPreset: 'Conforme a predefinição ({v})', off: 'Não', on: 'Sim', 'opt.low': 'Baixa', 'opt.high': 'Alta',
     'cat.shadows': 'Sombras', 'cat.glow': 'Brilho da tinta', 'cat.particles': 'Partículas', 'cat.ambient': 'Movimento ambiente',
     adaptive: 'Resolução adaptativa', showFps: 'Mostrar FPS', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'sem efeitos',
-    syncSaving: 'Salvando…', syncSynced: 'Salvo na nuvem', syncError: 'Falha ao salvar na nuvem. Tentaremos de novo.', hello: 'Olá, {name}',
+    syncSaving: 'Salvando…', syncSynced: 'Salvo na nuvem', syncError: 'Falha ao salvar na nuvem. Tentaremos de novo.', hello: 'Olá, {name}', playerId: 'Jogador {id}',
     loadError: 'Não foi possível carregar as fases. Verifique sua conexão e recarregue.',
   },
   'it-IT': {
@@ -212,7 +212,7 @@ const T = {
     renderScale: 'Scala di rendering', fromPreset: 'Da preimpostazione ({v})', off: 'No', on: 'Sì', 'opt.low': 'Bassa', 'opt.high': 'Alta',
     'cat.shadows': 'Ombre', 'cat.glow': 'Bagliore vernice', 'cat.particles': 'Particelle', 'cat.ambient': 'Movimento ambientale',
     adaptive: 'Risoluzione adattiva', showFps: 'Mostra FPS', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'nessun effetto',
-    syncSaving: 'Salvataggio…', syncSynced: 'Salvato nel cloud', syncError: 'Salvataggio cloud non riuscito. Nuovo tentativo più tardi.', hello: 'Ciao, {name}',
+    syncSaving: 'Salvataggio…', syncSynced: 'Salvato nel cloud', syncError: 'Salvataggio cloud non riuscito. Nuovo tentativo più tardi.', hello: 'Ciao, {name}', playerId: 'Giocatore {id}',
     loadError: 'Impossibile caricare i livelli. Controlla la connessione e ricarica.',
   },
 };

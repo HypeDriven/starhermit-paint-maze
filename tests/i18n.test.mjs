@@ -28,3 +28,25 @@ test('t fills placeholders', () => {
   assert.equal(t('completeSub', { moves: 4, par: 3 }), '4 Züge · Par 3');
   setLocale('en-US');
 });
+
+test('every key used in markup and code exists in all nine locales', async () => {
+  const fs = await import('node:fs');
+  const root = new URL('..', import.meta.url);
+  const keys = new Set();
+  for (const f of fs.readdirSync(new URL('src/', root))) {
+    if (!f.endsWith('.js') || f === 'i18n.js') continue;
+    const src = fs.readFileSync(new URL('src/' + f, root), 'utf8');
+    for (const m of src.matchAll(/(?<![\w.$])t\(\s*'([\w.-]*[\w-])'/g)) keys.add(m[1]);
+  }
+  const html = fs.readFileSync(new URL('index.html', root), 'utf8');
+  for (const m of html.matchAll(/data-i18n(?:-aria)?="([^"]+)"/g)) keys.add(m[1]);
+  // Families built at runtime.
+  for (const d of ['U', 'D', 'L', 'R']) keys.add('dir.' + d);
+  for (const w of ['studio', 'gallery', 'workshop', 'atelier']) keys.add('world.' + w);
+  for (const k of ['low', 'balanced', 'high', 'ultra', 'opt.low', 'opt.high', 'off', 'on']) keys.add(k);
+  assert.ok(keys.size > 50, `only ${keys.size} keys`);
+  for (const loc of LOCALES) {
+    const missing = [...keys].filter((k) => typeof STRINGS[loc][k] !== 'string');
+    assert.deepEqual(missing, [], `${loc} missing keys`);
+  }
+});

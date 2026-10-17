@@ -24,14 +24,14 @@ function setSync(status) {
 
 async function loadIdentity() {
 	const p = await sdk().profile();
-	const name = p ? p.displayName : 'Player ' + String(sdk().userId || '').slice(0, 6);
-	if (state.handlers.onName) state.handlers.onName(name);
+	// No profile: the game shows a localized "Player <id prefix>".
+	if (state.handlers.onName) state.handlers.onName(p ? p.displayName : null, String(sdk().userId || '').slice(0, 6));
 }
 
-async function loadCloudDoc() {
+async function loadCloudDoc(opts) {
 	if (!state.handlers.onRemote) return;
 	const doc = await sdk().loadJSON(); // null when none / unreachable: the local cache rules
-	if (doc) state.handlers.onRemote(doc);
+	if (doc || (opts && opts.conflict)) state.handlers.onRemote(doc, opts || {});
 }
 
 // Queue a cloud save. `builder` reads the current local cache when the
@@ -75,6 +75,9 @@ function boot(handlers) {
 		state.inited = true;
 		s.init();
 		let was = hosted();
+		// A write lost to a save made on another device: re-read (lifts the SDK's
+		// write block), merge in main.js and save the merged doc again.
+		s.on('saveconflict', () => { loadCloudDoc({ conflict: true }); });
 		s.on('auth', (a) => {
 			if (a.signedIn === was) return; // renewals change nothing visible
 			was = a.signedIn;

@@ -16,14 +16,25 @@ const token = 'h.' + b64u({ sub: 'user-123456', game_scope: 'pm-slug', exp: Math
 const unrefTimeout = (f, ms) => { const t = setTimeout(f, ms); t.unref(); return t; };
 
 function fakeServer() {
-  const calls = [], saves = {}, kv = {};
+  const calls = [], saves = {}, kv = {}, etags = {};
+  let version = 0;
   const fetch = async (url, init = {}) => {
     const method = init.method || 'GET';
     calls.push([method, url]);
     const r = (status, body) => new Response(body == null ? null : body, { status });
     if (url.includes('/cloud-saves/')) {
-      const key = decodeURIComponent(url.split('/cloud-saves/')[1]);
-      if (method === 'PUT') { saves[key] = Buffer.from(JSON.parse(init.body).dataBase64, 'base64'); return r(200, '{}'); }
+      // Conditional writes like the platform: If-Match / If-None-Match after a
+      // load, 412 with the current etag when stale, { etag } on success.
+      const tail = decodeURIComponent(url.split('/cloud-saves/')[1]);
+      const key = tail.replace(/\/info$/, '');
+      const h = new Headers(init.headers || {});
+      if (tail.endsWith('/info')) return r(200, JSON.stringify(saves[key] ? { exists: true, etag: etags[key] } : { exists: false }));
+      if (method === 'PUT') {
+        if ((h.get('If-Match') && h.get('If-Match') !== etags[key]) || (h.get('If-None-Match') === '*' && saves[key])) return r(412, JSON.stringify({ etag: etags[key] || null }));
+        saves[key] = Buffer.from(JSON.parse(init.body).dataBase64, 'base64');
+        etags[key] = '"v' + (++version) + '"';
+        return r(200, JSON.stringify({ etag: etags[key] }));
+      }
       return saves[key] ? r(200, saves[key]) : r(404);
     }
     if (url.endsWith('/profile')) return r(200, JSON.stringify({ username: 'u', nickname: 'Tess' }));
@@ -32,7 +43,7 @@ function fakeServer() {
     if (url.endsWith('/controls')) return r(200, JSON.stringify({ actions: [{ action: 'hint', codes: ['KeyJ'] }] }));
     return r(404);
   };
-  return { calls, saves, kv, fetch };
+  return { calls, saves, kv, etags, fetch, bump(key) { etags[key] = '"v' + (++version) + '"'; } };
 }
 
 function install(hash, srv, hostname = 'pm-slug.starhermit.com') {
@@ -99,4 +110,45 @@ test('boot is a no-op outside a browser', async () => {
   const P = await import('../src/platform.js?bare');
   assert.equal(P.boot({}), false);
   Object.assign(globalThis, saved);
+});
+
+test('sign-in is offered on a StarHermit UUID host without a token', async () => {
+  const srv = fakeServer();
+  install('', srv, '0b9d6f2e-3c4a-4e5b-9a7c-1d2e3f405162.starhermit.com');
+  const P = await import('../src/platform.js?uuid');
+  P.boot({});
+  assert.equal(P.canSignIn(), true);
+});
+
+test('cloud-save conflict: a write that lost to another device re-reads the slot for a merge, then saves again', async () => {
+  const srv = fakeServer();
+  const win = install('#game_token=' + token, srv, 'pm-slug.starhermit.com');
+  const { mergeRemote, cloudDoc, emptyProfile, recordResult } = await import('../src/storage.js');
+  const P = await import('../src/platform.js?conflict');
+  const profile = emptyProfile();
+  recordResult(profile, 'studio-1', 4, 3);
+  const seen = [];
+  P.boot({
+    onRemote: (doc, opts) => {
+      seen.push(opts && opts.conflict ? 'conflict' : 'boot');
+      mergeRemote(profile, doc);
+      if (opts && opts.conflict) P.pushCloud(() => cloudDoc(profile));
+    },
+  });
+  await tick();                                    // boot load: empty slot, writes are conditional from now on
+  P.pushCloud(() => cloudDoc(profile));
+  await P.flushCloud();
+  // Another device saves a better result for another level.
+  const other = cloudDoc(emptyProfile());
+  other.progress = { 'studio-2': { best: 6, stars: 3 } };
+  srv.saves['game:pm-slug'] = Buffer.from(await win.StarHermit._zip('save.json', new TextEncoder().encode(JSON.stringify(other))));
+  srv.bump('game:pm-slug');
+  recordResult(profile, 'studio-3', 9, 1);
+  P.pushCloud(() => cloudDoc(profile));
+  await P.flushCloud();                            // 412 → saveconflict → re-read → merge → save
+  for (let i = 0; i < 40 && seen.length < 1; i++) await tick();
+  await P.flushCloud();                            // the merged re-save (instead of waiting for the debounce)
+  assert.deepEqual(seen, ['conflict']);
+  const stored = JSON.parse(new TextDecoder().decode(await win.StarHermit._unzip(srv.saves['game:pm-slug'])));
+  assert.deepEqual(Object.keys(stored.progress).sort(), ['studio-1', 'studio-2', 'studio-3']);
 });

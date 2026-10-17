@@ -42,7 +42,7 @@ export function recordResult(profile, id, moves, stars) {
 /** The part of the profile mirrored to the StarHermit cloud save. */
 export const cloudDoc = (profile) => ({ v: 2, progress: profile.progress, current: profile.current, tutorialSeen: profile.tutorialSeen });
 
-/** Merges a remote cloud doc into the local profile: best results win; the remote in-progress level is preferred. */
+/** Merges a remote cloud doc into the local profile: best results win; this device's in-progress level is kept (the remote one is used only when there is none). */
 export function mergeRemote(profile, doc) {
   if (!doc || doc.v !== 2 || typeof doc.progress !== 'object') return false;
   for (const [id, r] of Object.entries(doc.progress)) {
@@ -50,7 +50,7 @@ export function mergeRemote(profile, doc) {
     const l = profile.progress[id];
     profile.progress[id] = l ? { best: Math.min(l.best, r.best), stars: Math.max(l.stars, r.stars) } : { best: r.best, stars: r.stars };
   }
-  if (doc.current && typeof doc.current.id === 'string' && typeof doc.current.dirs === 'string') profile.current = doc.current;
+  if (!profile.current && doc.current && typeof doc.current.id === 'string' && typeof doc.current.dirs === 'string') profile.current = doc.current;
   if (doc.tutorialSeen && typeof doc.tutorialSeen === 'object') profile.tutorialSeen = { ...profile.tutorialSeen, ...doc.tutorialSeen };
   return true;
 }

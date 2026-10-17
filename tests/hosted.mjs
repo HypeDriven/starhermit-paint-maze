@@ -27,6 +27,7 @@ const MIME = {
 
 const calls = [];
 let cloudZip = null; // bytes served by the next GET cloud-saves
+let saveVersion = 0;
 const b64url = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = `${b64url({ alg: 'none' })}.${b64url({ sub: 'u-1234-abcd-9999', game_scope: 'paint-maze' })}.sig`;
 
@@ -45,6 +46,11 @@ const server = http.createServer((req, res) => {
 			res.end(JSON.stringify({ token: jwt + '2' }));
 			return;
 		}
+		if (url === '/api/v1/me/cloud-saves/game:paint-maze/info') {
+			res.writeHead(200, { 'Content-Type': 'application/json' });
+			res.end(JSON.stringify(cloudZip ? { exists: true, etag: '"v' + saveVersion + '"' } : { exists: false }));
+			return;
+		}
 		if (url === '/api/v1/me/cloud-saves/game:paint-maze') {
 			if (req.method === 'GET') {
 				if (!cloudZip) { res.writeHead(404); res.end(); return; }
@@ -59,8 +65,9 @@ const server = http.createServer((req, res) => {
 					const doc = JSON.parse(body);
 					if (!doc.dataBase64) { res.writeHead(400); res.end(); return; }
 					cloudZip = Buffer.from(doc.dataBase64, 'base64');
+					saveVersion++;
 					res.writeHead(200, { 'Content-Type': 'application/json' });
-					res.end('{}');
+					res.end(JSON.stringify({ etag: '"v' + saveVersion + '"' })); // the SDK treats a PUT without an etag as failed
 				});
 				return;
 			}

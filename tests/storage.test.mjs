@@ -22,7 +22,7 @@ test('recordResult keeps the best moves and most stars', () => {
   assert.deepEqual(p.progress.a, { best: 5, stars: 3 });
 });
 
-test('mergeRemote: best results win, remote in-progress level is preferred, junk ignored', () => {
+test('mergeRemote: best results win, this device\'s in-progress level is kept, junk ignored', () => {
   const p = emptyProfile();
   recordResult(p, 'a', 5, 3);
   recordResult(p, 'b', 9, 1);
@@ -32,6 +32,9 @@ test('mergeRemote: best results win, remote in-progress level is preferred, junk
   doc.current = { id: 'c', dirs: 'UD' };
   assert.equal(mergeRemote(p, doc), true);
   assert.deepEqual(p.progress, { a: { best: 5, stars: 3 }, b: { best: 6, stars: 3 }, c: { best: 4, stars: 3 } });
-  assert.deepEqual(p.current, { id: 'c', dirs: 'UD' });
+  assert.deepEqual(p.current, { id: 'b', dirs: 'R' });
+  p.current = null;
+  mergeRemote(p, doc);
+  assert.deepEqual(p.current, { id: 'c', dirs: 'UD' });   // the cloud's level only when none is in progress here
   assert.equal(mergeRemote(p, { v: 1 }), false);
 });

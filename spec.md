@@ -75,7 +75,12 @@ Progress is saved in `localStorage` (`paint-maze:v2`):
 
 ## Localization
 
-All UI text comes from `src/i18n.js` in en-US, en-GB, es-419, es-ES, de-DE, fr-FR, fr-CA, pt-BR and it-IT. The first-run locale is matched from the browser language (for example es-MX → es-419, fr-BE → fr-FR, en-AU → en-GB); after that, the Settings choice is used.
+All UI text comes from `src/i18n.js` in en-US, en-GB, es-419, es-ES, de-DE, fr-FR, fr-CA, pt-BR and it-IT.
+
+- **Language setting:** Settings → General → **Language** lists **Automatic — <resolved language>** and the nine locales by native name, with a status line (Saved to account / Saved on this device / Account sync unavailable). It is bound to `sh-language.js` (`GameLanguage.bindSelect`), so the shared options panel shows no second selector. An older explicit locale choice migrates once.
+- **Resolution:** explicit choice → for Automatic, the StarHermit account's `preferredLanguage` (`GET /api/v1/me/language`, signed in only) → the browser's languages → en-US, matching tags to the nearest shipped locale (es-MX → es-419, fr-BE → fr-FR, en-AU → en-GB, pt-PT → pt-BR). The choice is stored per player in `localStorage['paint-maze.language.<user|guest>']` and, when signed in, in the per-player settings key `ui.language` as `{ choice }`; a failed settings read never overwrites it and the game never writes the platform preference. Standalone play makes no language request. `?lang=<tag>` forces a locale for the page load (QA links) and hides the selector.
+- **Live switching:** a change applies at once — `<html lang>`, every `data-i18n` label, the HUD, level title, tip, key list, Graphics panel, sync pill, greeting and an open finish dialog (with its leaderboard line) re-render in place; the level in progress is untouched.
+- `tests/i18n.test.mjs` checks that every key used in markup and code exists in all nine locales with matching placeholders.
 
 ## StarHermit integration
 
@@ -83,10 +88,11 @@ All platform traffic goes through the shared SDK `starhermit-sdk.js` (an unmodif
 
 - **Launch token:** `StarHermit.init()` reads `#game_token=` (library launch) or `#access_token=` (direct sign-in return) once and strips it; the slug is the `game_scope` claim. The SDK renews the token before expiry. If renewal is refused the greeting hides, a "signed out — playing locally" toast shows, sign-in is re-offered and play continues locally.
 - **Sign-in:** on `*.starhermit.com` without a token the title shows **Sign in with StarHermit** (`StarHermit.signIn()`); hidden when signed in and when running locally.
-- **Identity:** the profile nickname (fallback `Player ` + id prefix) is shown on the title screen.
-- **Cloud save:** progress, the level in progress and tips seen are mirrored to the `game:<slug>` slot. Saves are debounced by 2 s and flushed on `pagehide` or when the page is hidden. A pill shows Saving… / Saved to cloud / an error.
-- **Merging:** on launch, the remote document is merged in. The best moves and most stars per level win, and the remote level in progress is preferred.
-- **Settings KV:** language, volume, Reduce motion and the graphics settings are patched to the per-player settings store on change and applied at boot (the account value wins).
+- **Identity:** the profile nickname (fallback a localized "Player <id prefix>") is shown on the title screen.
+- **Cloud save:** progress, the level in progress and tips seen are mirrored to the `game:<slug>` slot through `StarHermit.loadJSON` / `writeSave`, so every write after the launch load is conditional on the version it saw. Saves are debounced by 2 s and flushed on `pagehide` or when the page is hidden. A pill shows Saving… / Saved to cloud / an error.
+- **Merging:** on launch, the remote document is merged in (`mergeRemote`): the fewest moves and most stars per level win, tips seen are unioned, and this device's level in progress is kept (the remote one is used only when there is none); the merged document is written back when it differs. When another device saved first, the SDK refuses the write and emits `saveconflict`: the game re-reads the slot, applies the same merge and saves again, so neither side's progress is lost.
+- **Report a problem:** Settings → Graphics → **Report a problem** (signed in only, from the shared `game-options.js`) files a bug report through `StarHermit.reportBug` with a small non-personal `context.json` (viewport, language, FPS cap, audio limit); uncaught errors are filed as crash reports through `StarHermit.captureCrashes` (SDK-capped).
+- **Settings KV:** volume, Reduce motion and the graphics settings are patched to the per-player settings store on change and applied at boot (the account value wins).
 - **Controls:** keyboard input routes through `StarHermit.loadBindings()` (platform rebinds over the `control.*` defaults).
 - **Invite:** **Invite a friend** copies `StarHermit.inviteLink()` to the clipboard and confirms with a toast.
 - **Leaderboard:** after every finished level, a signed-in player's total star count (all levels) is posted through `StarHermit.submitScores` to the `total-stars` board (integer, higher is better, 0–180). The platform script `score-script.js` (canonical copy in the games repo's `tools/score-script.js`) accepts it on a practice session, range-checks it and posts it. The finish dialog shows "Leaderboard rank: #N" (or posted / not posted) under the move count.
@@ -117,8 +123,9 @@ Matchmaking, chat, achievements and replays are not used.
   - the difficulty ramp and phone-sized boards
   - the graphics model
   - storage and cloud merge
-  - every locale has every key with matching placeholders
-- `npm run test:e2e` drives the visible UI in Chrome at 1280×800, 390×844 (touch) and 844×390 (touch). It solves levels with the on-screen arrows, keys, swipe and tile taps, and exercises How to play, Undo, Hint, Restart, resume after reload, level select state, and the language and graphics settings with persistence. It fails on any console error or warning, failed request, or control outside the viewport.
+  - every locale has every key with matching placeholders, and every key used in markup and code exists
+  - the platform adapter: ETag-conditional cloud save, a 412 conflict that re-reads, merges and saves, sign-in on a UUID host, no requests standalone
+- `npm run test:e2e` drives the visible UI in Chrome at 1280×800, 390×844 (touch) and 844×390 (touch). It solves levels with the on-screen arrows, keys, swipe and tile taps, and exercises How to play, Undo, Hint, Restart, resume after reload, level select state, and the language and graphics settings with persistence. At 1280×800 and 390×844 it ends with a language step against a stubbed StarHermit API: the account's preferred fr-CA makes Automatic resolve to French (Canada); choosing Deutsch mid-level re-renders the settings, HUD and tip in place without resetting the level, PUTs `ui.language`, and Report a problem posts to `/reports`. It fails on any console error or warning, failed request, or control outside the viewport.
 - `npm run test:hosted` checks the StarHermit flow (token strip, nickname, `game:<slug>` cloud save, restore) against a fake API.
 
 ## Browser interference

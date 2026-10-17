@@ -3,7 +3,7 @@ import * as rules from './rules.js';
 import { Renderer } from './render.js';
 import { Audio } from './audio.js';
 import * as gfx from './gfx.js';
-import { t, setLocale, getLocale, matchLocale, LOCALES, LOCALE_NAMES } from './i18n.js';
+import { t, setLocale, getLocale, LOCALES } from './i18n.js';
 import { loadProfile, saveProfile, recordResult, cloudDoc, mergeRemote } from './storage.js';
 import * as platform from './platform.js';
 
@@ -32,8 +32,9 @@ function renderKeys() {
   ].join(' · ');
 }
 
-// Player preferences mirrored to the StarHermit settings KV.
-const KV_KEYS = ['locale', 'volume', 'reducedMotion', 'gfx'];
+// Player preferences mirrored to the StarHermit settings KV. The game language
+// is not one of them: sh-language.js keeps it as `ui.language`.
+const KV_KEYS = ['volume', 'reducedMotion', 'gfx'];
 function pushPlatformSettings() {
   if (!game.hosted) return;
   const s = game.profile.settings;
@@ -48,11 +49,56 @@ async function loadPlatformSettings() {
   for (const k of KV_KEYS) if (kv[k] !== undefined && kv[k] !== null) { s[k] = kv[k]; changed = true; }
   if (!changed) return;
   saveProfile(game.profile);
-  setLocale(s.locale || matchLocale(navigator.language));
   game.audio.setVolume(s.volume ?? 0.7);
   applyGraphics();
   applyMotion();
+}
+
+// Game language (sh-language.js): Settings → Language (`ui.language`), for
+// Automatic the StarHermit account's preferred language, then the browser's
+// languages, then en-US. `?lang=` forces a locale for the page load (QA links)
+// and hides the selector. A change re-renders all visible text in place.
+let language = null;
+function initLanguage() {
+  const SHL = window.StarHermitLanguage;
+  let forced = null;
+  try { forced = new URLSearchParams(location.search).get('lang'); } catch { /* opaque origin */ }
+  const forcedLocale = forced && SHL ? SHL.match(forced, LOCALES) : null;
+  if (!SHL) { setLocale('en-US'); return; }
+  // The game binds its own Language select (Settings → General), so the shared panel shows none.
+  language = SHL.create({ game: 'paint-maze', supported: LOCALES, panel: false, apply: (loc) => onLocale(forcedLocale || loc) });
+  // One-time migration of the old in-game locale setting.
+  const old = game.profile.settings.locale;
+  if (old && !forcedLocale) {
+    if (language.choice() === 'auto') language.setChoice(old);
+    game.profile.settings.locale = null;
+    saveProfile(game.profile);
+  }
+  const sel = $('set-locale');
+  if (forcedLocale) sel.closest('.field').hidden = true;
+  else language.bindSelect(sel, $('set-locale-status'));
+}
+let uiReady = false;
+function onLocale(loc) {
+  const changed = loc !== getLocale();
+  setLocale(loc);
+  if (!uiReady || !changed) return;
   applyI18n();
+  renderGraphicsPanel();
+  renderKeys();
+  renderComplete();
+  if (game.level) {
+    $('level-title').textContent = t('levelOf', { world: worldName(game.level.world), n: levelNumber(game.idx) });
+    if (!game.finished) showTip();
+  }
+  if (game.playerName !== undefined) showHello();
+  const sync = $('sync');
+  if (!sync.hidden && sync.dataset.status) showSync(sync.dataset.status);
+}
+function showHello() {
+  const h = $('hello');
+  h.textContent = t('hello', { name: game.playerName || t('playerId', { id: game.playerId || '' }) });
+  h.hidden = false;
 }
 
 let toastTimer = null;
@@ -99,7 +145,7 @@ function detectGpu() {
 
 async function boot() {
   const s = game.profile.settings;
-  setLocale(s.locale || matchLocale(navigator.language));
+  initLanguage();
   game.gpuName = detectGpu();
   game.detected = gfx.detectTier(game.gpuName, { touch: matchMedia('(pointer: coarse)').matches });
   game.renderer = new Renderer($('board'), { fpsEl: $('fps') });
@@ -108,13 +154,18 @@ async function boot() {
   game.audio.setVolume(s.volume ?? 0.7);
   applyI18n();
   bindUi();
+  uiReady = true;
   game.hosted = platform.boot({
-    onName: (name) => { const h = $('hello'); h.textContent = t('hello', { name }); h.hidden = false; },
-    onRemote: (doc) => {
-      if (!mergeRemote(game.profile, doc)) return;
+    onName: (name, id) => { game.playerName = name; game.playerId = id; showHello(); },
+    // Boot load and saveconflict: merge (best results win, this device's level
+    // in progress is kept), then write the merged doc back when it differs.
+    onRemote: (doc, opts = {}) => {
+      if (!mergeRemote(game.profile, doc)) { if (opts.conflict) platform.pushCloud(() => cloudDoc(game.profile)); return; }
       saveProfile(game.profile);
       refreshTitle();
       if (document.body.dataset.screen === 'levels') renderLevels();
+      const after = JSON.stringify(cloudDoc(game.profile));
+      if (opts.conflict || after !== JSON.stringify(cloudDoc({ ...game.profile, ...doc }))) platform.pushCloud(() => cloudDoc(game.profile));
     },
     onSync: showSync,
     onAuth: (a) => {
@@ -341,13 +392,32 @@ function postStars(level) {
   const line = $('complete-lb');
   const seq = ++lbSeq;
   line.hidden = true;
+  lbResult = null;
   if (!platform.hosted()) return;
   line.hidden = false;
-  line.textContent = t('lbPosting');
+  lbResult = { pending: true };
+  renderLbLine();
   platform.submitStars(totalStars()).then((r) => {
     if (seq !== lbSeq || game.level !== level) return;
-    line.textContent = !r.posted ? t('lbNotPosted') : r.rank ? t('lbRank', { rank: r.rank }) : t('lbPosted');
+    lbResult = r;
+    renderLbLine();
   });
+}
+let lbResult = null;
+function renderLbLine() {
+  const r = lbResult;
+  if (!r) return;
+  $('complete-lb').textContent = r.pending ? t('lbPosting') : !r.posted ? t('lbNotPosted') : r.rank ? t('lbRank', { rank: r.rank }) : t('lbPosted');
+}
+// The finish dialog's text, re-rendered when the language changes.
+let completeInfo = null;
+function renderComplete() {
+  const c = completeInfo;
+  if (!c) return;
+  $('complete-title').textContent = c.worldEnd ? t('worldDone', { world: worldName(c.world) }) : t('complete');
+  $('complete-sub').textContent = t('completeSub', { moves: c.moves, par: c.par });
+  $('complete-extra').textContent = c.last ? t('allDone') : c.newBest ? t('newBest') : '';
+  renderLbLine();
 }
 
 function finish() {
@@ -364,9 +434,8 @@ function finish() {
   game.audio.play(last ? 'finale' : worldEnd ? 'world' : 'complete');
   if (stars === 3) setTimeout(() => game.audio.play('perfect', { gain: 0.6 }), 350);
   $('complete-stars').innerHTML = [1, 2, 3].map((k) => `<span class="${k <= stars ? '' : 'off'}">★</span>`).join('');
-  $('complete-title').textContent = worldEnd ? t('worldDone', { world: worldName(level.world) }) : t('complete');
-  $('complete-sub').textContent = t('completeSub', { moves: state.moves, par: level.par });
-  $('complete-extra').textContent = last ? t('allDone') : hadRecord && newBest ? t('newBest') : '';
+  completeInfo = { worldEnd, last, world: level.world, moves: state.moves, par: level.par, newBest: hadRecord && newBest };
+  renderComplete();
   $('btn-next').hidden = last;
   document.body.dataset.stars = stars;
   postStars(level);
@@ -431,9 +500,6 @@ function saveSettings() { persist(); pushPlatformSettings(); }
 
 function renderSettings() {
   const s = game.profile.settings;
-  const loc = $('set-locale');
-  loc.innerHTML = LOCALES.map((l) => `<option value="${l}">${LOCALE_NAMES[l]}</option>`).join('');
-  loc.value = getLocale();
   $('set-volume').value = Math.round((s.volume ?? 0.7) * 100);
   renderGraphicsPanel();
 }
@@ -517,17 +583,7 @@ function bindUi() {
   // Settings controls.
   $('tab-general').addEventListener('click', () => selectTab('general'));
   $('tab-graphics').addEventListener('click', () => { selectTab('graphics'); renderGraphicsPanel(); });
-  $('set-locale').addEventListener('change', (e) => {
-    game.profile.settings.locale = e.target.value;
-    setLocale(e.target.value);
-    applyI18n();
-    renderSettings();
-    if (game.level) {
-      $('level-title').textContent = t('levelOf', { world: worldName(game.level.world), n: levelNumber(game.idx) });
-      if (!game.finished) showTip();
-    }
-    saveSettings();
-  });
+  // #set-locale is bound by sh-language.js (initLanguage): a change applies through onLocale().
   $('set-volume').addEventListener('input', (e) => {
     game.profile.settings.volume = e.target.value / 100;
     game.audio.unlock();
