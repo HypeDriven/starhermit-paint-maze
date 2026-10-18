@@ -1,8 +1,9 @@
 // Canvas 2D board renderer. Static geometry (floor, raised walls, shadows) is
 // cached in an offscreen layer; each frame draws paint, the ball, hint arrow
-// and particles on top. Only redraws while something moves.
+// and particles on top. Settled paint is cached in a second offscreen layer, so a
+// frame only draws tiles still spreading. Only redraws while something moves.
 import { DIRS } from './rules.js';
-import { PARTICLE_BUDGET, pixelRatio, adaptStep } from './gfx.js';
+import { particleCap, pixelRatio, adaptStep } from './gfx.js';
 
 export const PALETTES = {
   studio: { paint: '#ff5a5f', paintHi: '#ff9a8f', floor: '#f4eee6', floorEdge: '#e2d8cb', wall: '#4a4458', wallTop: '#6b6480', bg1: '#fbf3ea', bg2: '#f1e2d6' },
@@ -32,7 +33,7 @@ export class Renderer {
     this.hintDir = null;
     this.celebrateAt = 0;
     this.particles = [];
-    this.blobs = Array.from({ length: 7 }, (_, i) => ({ x: (i * 0.37) % 1, y: (i * 0.61) % 1, r: 0.12 + (i % 3) * 0.05, s: 0.6 + (i % 4) * 0.25 }));
+    this.blobs = Array.from({ length: 10 }, (_, i) => ({ x: (i * 0.37) % 1, y: (i * 0.61) % 1, r: 0.12 + (i % 3) * 0.05, s: 0.6 + (i % 4) * 0.25 }));
     this.dirty = true;
     this.last = now();
     this._loop = this._loop.bind(this);
@@ -65,6 +66,7 @@ export class Renderer {
     if (this.anim) { const r = this.anim.resolve; this.anim = null; r(); }
     this.state = state;
     this.paintAt.clear();
+    this.settled = null; // repaint the cached paint layer
     this.board.cells.forEach((c, i) => { if (state.painted[i]) this.paintAt.set(c, 0); });
     this.anim = null;
     this.hintDir = null;
@@ -90,6 +92,7 @@ export class Renderer {
     this.oy = Math.round((rect.height - this.tile * this.board.h - Math.max(4, this.tile * 0.2)) / 2);
     Object.assign(this.canvas.dataset, { tile: this.tile, ox: this.ox, oy: this.oy });
     this._bakeStatic();
+    this.settled = null;
     this.dirty = true;
   }
 
@@ -120,7 +123,7 @@ export class Renderer {
   celebrate() {
     this.celebrateAt = now();
     if (this.q && this.q.particles !== 'off' && !this.reducedMotion) {
-      const n = this.q.particles === 'high' ? 90 : 36;
+      const n = Math.round(this.q.budget.confetti * (this.q.particles === 'high' ? 1 : 0.4));
       for (let i = 0; i < n; i++) {
         const c = this.board.cells[Math.floor(Math.random() * this.board.cells.length)];
         const [x, y] = this._xy(c);
@@ -132,10 +135,35 @@ export class Renderer {
 
   /* ---------------- internals ---------------- */
 
+  // Offscreen layer of settled paint at the canvas's device size (cleared on resize / state jumps).
+  _paintLayer() {
+    const c = (this.paintLayerCanvas ||= document.createElement('canvas'));
+    if (!this.settled || c.width !== this.canvas.width || c.height !== this.canvas.height) {
+      c.width = this.canvas.width; c.height = this.canvas.height;
+      c.getContext('2d').setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      this.settled = new Set();
+    }
+    return c;
+  }
+
+  _paintTile(g, cell, k, shine) {
+    const T = this.tile, [x, y] = this._xy(cell);
+    const px = this.ox + x * T, py = this.oy + y * T;
+    const e = ease(k);
+    const sw = T * (0.3 + 0.7 * e), sh = sw;
+    g.fillStyle = this.pal.paint;
+    this._round(g, px + (T - sw) / 2, py + (T - sh) / 2, sw, sh, T * 0.5 * (1 - e) + 0.5);
+    g.fill();
+    if (shine) {
+      g.fillStyle = 'rgba(255,255,255,.16)';
+      g.fillRect(px, py + T * 0.12, T, T * 0.12);
+    }
+  }
+
   _xy(cell) { const x = cell % this.board.w; return [x, (cell - x) / this.board.w]; }
 
   _spawn(x, y, vx, vy, life, confetti = false) {
-    const budget = PARTICLE_BUDGET[this.q?.particles || 'off'];
+    const budget = this.q ? particleCap(this.q) : 0;
     if (this.particles.length >= budget) return;
     this.particles.push({ x, y, vx, vy, t0: now(), life, r: 0.05 + Math.random() * 0.07, confetti, hue: Math.random() });
   }
@@ -308,37 +336,38 @@ export class Renderer {
       g.save();
       g.globalAlpha = 0.07;
       g.fillStyle = pal.paint;
-      for (const b of this.blobs) {
+      for (const b of this.blobs.slice(0, this.q.budget.blobs)) {
         const x = ((b.x + Math.sin(t / 9000 * b.s) * 0.08) % 1) * this.cssW;
         const y = ((b.y + Math.cos(t / 11000 * b.s) * 0.08) % 1) * this.cssH;
         g.beginPath(); g.arc(x, y, b.r * Math.max(this.cssW, this.cssH), 0, Math.PI * 2); g.fill();
       }
       g.restore();
     }
-    // Paint: each tile spreads from its centre when first painted.
+    // Paint: each tile spreads from its centre when first painted. Finished tiles move into the
+    // cached paint layer (drawn once per tile); only spreading tiles are drawn every frame.
     const glow = this.q.glow === 'on';
+    const shine = glow;
     const wave = this.celebrateAt ? (t - this.celebrateAt) / 900 : -1;
     const [bx0, by0] = this.state ? this._xy(this.state.pos) : [0, 0];
+    const layer = this._paintLayer();
+    const lg = layer.getContext('2d');
     for (const [cell, at] of this.paintAt) {
-      const [x, y] = this._xy(cell);
+      if (this.settled.has(cell)) continue;
       const k = at ? Math.min(1, (t - at) / 220) : 1;
-      const px = this.ox + x * T, py = this.oy + y * T;
-      const e = ease(k);
-      const sw = T * (0.3 + 0.7 * e), sh = sw;
-      g.fillStyle = pal.paint;
-      this._round(g, px + (T - sw) / 2, py + (T - sh) / 2, sw, sh, T * 0.5 * (1 - e) + 0.5);
-      g.fill();
-      if (glow) {
-        g.fillStyle = 'rgba(255,255,255,.16)';
-        g.fillRect(px, py + T * 0.12, T, T * 0.12);
-      }
-      if (wave >= 0 && wave < 1.6) {
-        const d = Math.hypot(x - bx0, y - by0) / Math.max(this.board.w, this.board.h);
-        const w = Math.max(0, 1 - Math.abs(wave - d) * 5);
-        if (w > 0) {
-          g.fillStyle = `rgba(255,255,255,${0.45 * w})`;
-          g.fillRect(px, py, T, T);
-        }
+      const done = k >= 1;
+      if (done) this.settled.add(cell);
+      this._paintTile(done ? lg : g, cell, k, shine);
+    }
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.drawImage(layer, 0, 0);
+    g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    if (wave >= 0 && wave < 1.6) for (const cell of this.paintAt.keys()) {
+      const [x, y] = this._xy(cell);
+      const d = Math.hypot(x - bx0, y - by0) / Math.max(this.board.w, this.board.h);
+      const w = Math.max(0, 1 - Math.abs(wave - d) * 5);
+      if (w > 0) {
+        g.fillStyle = `rgba(255,255,255,${0.45 * w})`;
+        g.fillRect(this.ox + x * T, this.oy + y * T, T, T);
       }
     }
     // Hint arrow beside the ball.

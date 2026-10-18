@@ -48,18 +48,36 @@ The board is drawn on a Canvas 2D element. Its static layer (a raised slab, carv
 **Graphics** (Settings → Graphics tab):
 
 - **Quality:** Auto, Low, Balanced, High or Ultra.
-  - Auto is chosen from the GPU's unmasked renderer name: no hardware context or a software renderer gives Low, discrete GPUs and Apple M-series give High, and anything else gives Balanced. Touch devices are capped at Balanced.
+  - Auto is chosen from the StarHermit hardware level (see below): Low from level 0, Balanced from 4, High from 10, Ultra from 17.
   - Choosing a preset clears the per-effect overrides.
 - **Render scale:** 50–200 %. The pixel-ratio cap per preset is 1 / 1.5 / 2 / 3, and Ultra renders at ×1.25.
 - **Per-effect overrides**, each defaulting to "From preset (…)":
   - Shadows (slab shadow, wall shading, ball shadow)
   - Paint glow (ball halo and paint sheen)
-  - Particles (off, or budgets of 60 or 220)
+  - Particles (off, or 30 % / all of the preset's particle budget)
   - Ambient motion (drifting paint haze)
 - **Adaptive resolution:** averages 90 frames; above 26 ms it steps down by 0.1 to 60 %, and below 14 ms it steps back up by 0.05.
 - **Show frame rate:** a readout in the board's corner.
-- A summary line shows the GPU name, the active effects and the render size in pixels.
+- A summary line "GPU · Level N · effects · W×H px" shows the GPU name, its hardware level ("Level" localized), the active effects and the render size in pixels.
 - Changes apply immediately and persist. `body[data-gfx-preset]` exposes the active preset.
+- Settled paint is cached in an offscreen layer (next to the cached static board), so a frame only draws tiles still spreading, the ball, hint, particles and the finish wave — on every preset.
+
+**Hardware-level detection.** `src/gpu-level.js` (shared StarHermit copy, `window.StarHermitGpu`, a classic script loaded before `src/main.js`, never edited here) rates the WebGL unmasked renderer plus device facts (`detectSystem()`: phone/tablet, cores, memory, screen) on the StarHermit hardware level 0–20 (0 = Galaxy S20 / Intel UHD or weaker, every software renderer and no hardware WebGL; 20 = RTX 5090; each level ≈ 1.23×; laptop parts two levels below desktop; phones, tablets and ≤ 4 GB machines capped at 9). `src/gfx.js` maps it with `presetForLevel(level, { low: 0, balanced: 4, high: 10, ultra: 17 })`, so Auto picks Ultra on strong GPUs; adaptive resolution still steps down when slow. Headless SwiftShader is level 0 → Low. Phones and tablets pace Auto FPS at half the display refresh rate ("Auto (half refresh rate)") and start at 16 simultaneous sounds (shared `game-options.js`).
+
+**Per-preset budgets** (`BUDGETS` / `budgetFor` / `particleCap` in `src/gfx.js`). Each preset holds 60 FPS on the weakest GPU Auto gives it — Low at level 0, Balanced 4, High 10, Ultra 17. Board, tiles, controls and rules are identical on every preset; only visuals change. Counts are tuned at the floor level and scale up within the preset on faster GPUs (`StarHermitGpu.scaleBudget`, ≤ 2×, at most 720 particles).
+
+| Budget | Low | Balanced | High | Ultra |
+|---|---|---|---|---|
+| Particle cap at Particles high (low: 30 %) | 80 | 120 | 220 | 360 |
+| Level-complete confetti at Particles high (low: 40 %) | 40 | 60 | 90 | 140 |
+| Drifting haze blobs (Ambient on) | 3 | 4 | 7 | 10 |
+| Canvas pixel-ratio cap / scale | 1 | 1.5 | 2 | 3 × 1.25 |
+| Per-frame `shadowBlur` ball halo (Glow) | off | off | on | on |
+
+**Benchmark** (`node tools/gfx-bench.mjs paint-maze`; hook `tests/gfx-bench.mjs` picks the preset in Settings → Graphics, presses Play and keeps rolling with the on-screen direction buttons, restarting every dozen rolls and going Next after a finished level). A 2D canvas: the gate is CPU time per frame. Measured 2026-10-17 (GPU ms above the draws-skipped floor, projected to the preset's floor level; CPU p90 on the RTX 5090 run):
+
+- Desktop 1920×1080: PASS low (typical 0.00 / slow 0.00 ms GPU, CPU 0.40 ms); PASS balanced (0.00 / 0.00, CPU 0.40); PASS high (0.00 / 0.05, CPU 0.50); PASS ultra (0.00 / 0.00, CPU 0.50).
+- Mobile 390×844 @3×: PASS low (0.00 / 0.23, CPU 0.30); PASS balanced (0.00 / 0.14, CPU 0.40).
 
 **Audio.** Short authored samples play through Web Audio, which starts on the first gesture. The sounds are listed in `sfx/manifest.txt`: roll, landing (splat when new tiles were painted, otherwise stop), bump, undo, hint, level complete, three stars, world complete, and game complete. Volume is set in Settings. Missing or undecodable audio is skipped.
 
@@ -108,12 +126,13 @@ Matchmaking, chat, achievements and replays are not used.
 | `src/rules.js` | Pure rules: parsing, rolls, legality, BFS solver, stars, replay, snapshots |
 | `src/render.js` | Canvas renderer and palettes |
 | `src/main.js` | Screens, input, level flow, settings, persistence wiring |
-| `src/gfx.js` | Pure graphics-quality model |
+| `src/gpu-level.js` | Shared StarHermit hardware-level module (`window.StarHermitGpu`), copied from the platform tools, never edited here |
+| `src/gfx.js` | Pure graphics-quality model: presets, hardware-level detection (`detectLevel`, `presetForLevel`, `detectTier`), per-preset `BUDGETS` / `budgetFor` / `particleCap` |
 | `src/i18n.js`, `src/storage.js`, `src/audio.js`, `src/platform.js` | Strings, profile/cloud doc, sound, StarHermit adapter |
 | `score-script.js` | StarHermit platform script (`server=`): range-checks the posted total stars and posts them to the `total-stars` board |
 | `data/levels.json` | The 60 levels, with par and optimal solution |
 | `tools/generate-levels.mjs`, `tools/serve.mjs` | Level generator, dev static server (`npm start`) |
-| `tests/` | Unit tests, `e2e.mjs`, `hosted.mjs` |
+| `tests/` | Unit tests, `e2e.mjs`, `hosted.mjs`, `gfx-bench.mjs` (dev-only hook for the platform's `tools/gfx-bench.mjs`) |
 
 ## Tests
 
@@ -121,7 +140,7 @@ Matchmaking, chat, achievements and replays are not used.
   - rules and solver
   - every level is enclosed, its stored solution completes it, and its par equals the BFS optimum
   - the difficulty ramp and phone-sized boards
-  - the graphics model
+  - the graphics model (hardware level → preset: no WebGL/SwiftShader/llvmpipe, AMD Radeon Graphics and Intel UHD → Low, Iris Xe → Balanced, GTX 1070 → High, RTX 4080/5090 → Ultra, phones such as Adreno 740 capped at Balanced; the per-preset budget table)
   - storage and cloud merge
   - every locale has every key with matching placeholders, and every key used in markup and code exists
   - the platform adapter: ETag-conditional cloud save, a 412 conflict that re-reads, merges and saves, sign-in on a UUID host, no requests standalone

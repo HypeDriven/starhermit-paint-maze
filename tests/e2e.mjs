@@ -199,6 +199,7 @@ async function run(browser, name, ctxOpts, { full }) {
     await page.selectOption('#gfx-cats select[data-cat="glow"]', 'off');
     await page.check('#gfx-fps');
     const summary = await page.textContent('#gfx-summary');
+    if (!/ · Level 0 · /.test(summary)) fail('summary lacks the hardware level: ' + summary);
     if (!/shadows/.test(summary) || /glow/.test(summary)) fail('High + glow off summary: ' + summary);
     await page.click('#overlay-settings .close-overlay');
     await page.reload();

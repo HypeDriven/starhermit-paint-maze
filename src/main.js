@@ -147,7 +147,15 @@ async function boot() {
   const s = game.profile.settings;
   initLanguage();
   game.gpuName = detectGpu();
-  game.detected = gfx.detectTier(game.gpuName, { touch: matchMedia('(pointer: coarse)').matches });
+  // StarHermit hardware level (src/gpu-level.js): renderer string + device facts (phone/tablet, cores,
+  // memory, screen); a browser without usable WebGL rates level 0.
+  let sys = { mobile: matchMedia('(pointer: coarse)').matches };
+  try {
+    const G = globalThis.StarHermitGpu;
+    if (G) { const d = G.detectSystem(); sys = { ...sys, mobile: sys.mobile || d.mobile, webgl2: d.webgl2 || !d.webgl, touch: d.touch, screen: d.screen, cores: d.cores, memoryGb: d.memoryGb, astc: d.astc }; }
+  } catch { /* defaults */ }
+  game.gpuLevel = gfx.detectLevel(game.gpuName, sys);
+  game.detected = gfx.presetForLevel(game.gpuLevel);
   game.renderer = new Renderer($('board'), { fpsEl: $('fps') });
   applyGraphics();
   applyMotion();
@@ -483,7 +491,7 @@ function clearHintMarks() { document.querySelectorAll('.dir.primary').forEach((b
 function gfxSettings() { return gfx.sanitize(game.profile.settings.gfx); }
 
 function applyGraphics() {
-  const q = gfx.resolve(game.profile.settings.gfx, game.detected);
+  const q = gfx.resolve(game.profile.settings.gfx, game.detected, game.gpuLevel);
   document.body.dataset.gfxPreset = q.preset;
   game.renderer.setQuality(q);
   return q;
@@ -524,7 +532,7 @@ function renderGraphicsPanel() {
   $('gfx-fps').checked = saved.showFps;
   const effects = gfx.activeEffects(q).map((k) => t('cat.' + k).toLowerCase()).join(', ') || t('noEffects');
   const px = game.renderer.pixelSize;
-  $('gfx-summary').textContent = `${game.gpuName || 'GPU ?'} · ` + t('gfxSummary', { effects, w: px.w, h: px.h });
+  $('gfx-summary').textContent = `${game.gpuName || 'GPU ?'} · ${t('gpuLevel', { n: game.gpuLevel })} · ` + t('gfxSummary', { effects, w: px.w, h: px.h });
 }
 
 function updateGfx(mut) {
