@@ -1,0 +1,29 @@
+# Landscape phone (DPR 3), by touch: the title without the logo, studio-1 and studio-2 with the arrows in a cross
+# at the right, the finish cards, then back to the list with the top bar's Levels button.
+# viewport 844x390@3
+until 300 =Play
+frames 150
+save land-title
+touch =Play
+until 60 =Studio · 1
+frames 30
+save land-game
+touch =Roll right
+until 120 =Painted!
+frames 30
+save land-complete
+touch =Next level
+until 60 =Studio · 2
+frames 30
+touch =Roll right
+frames 40
+touch =Roll down
+until 120 =Painted!
+frames 30
+touch =Next level
+until 60 =Studio · 3
+frames 30
+touch =Levels
+until 60 Workshop
+frames 10
+save land-levels

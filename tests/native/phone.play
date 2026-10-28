@@ -1,0 +1,51 @@
+# Portrait phone (DPR 3), by touch: a tap on a tile in the ball's row rolls to it (studio-1), a swipe on the board
+# and an arrow button (studio-2), then studio-3 with an arrow, Undo, Hint, Restart and the four arrows; the
+# finish card's Levels button opens the list with 9 stars.
+# viewport 390x844@3
+until 300 =Play
+frames 150
+save phone-title
+touch =Play
+until 60 =Studio · 1
+frames 30
+save phone-game
+touch 85% 51%
+until 120 =Painted!
+frames 30
+save phone-complete
+touch =Next level
+until 60 =Studio · 2
+frames 30
+swipe 30% 45% 70% 45% 6
+frames 40
+touch =Roll down
+until 120 =Painted!
+frames 30
+touch =Next level
+until 60 =Studio · 3
+frames 30
+touch =Roll down
+frames 40
+touch =Undo
+frames 10
+touch =Hint
+until 30 Try rolling
+frames 10
+save phone-hint
+touch =Roll down
+frames 40
+touch =Restart
+frames 20
+touch =Roll down
+frames 40
+touch =Roll right
+frames 40
+touch =Roll up
+frames 40
+touch =Roll left
+until 120 =Painted!
+frames 30
+touch =Levels #2
+until 60 ★ 9 / 180
+frames 10
+save phone-levels

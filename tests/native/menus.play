@@ -1,0 +1,66 @@
+# Desktop: the title, How to play (closed by a click outside it), the runtime's Options from Settings, the level
+# list, studio-1 with the keys: a blocked roll, Hint, Esc back to the levels and the title, Continue resumes the
+# level and D paints it; Enter on the finish card's focused Next level opens studio-2, where U undoes and R restarts.
+# viewport 1280x800@1
+until 300 =Play
+frames 150
+save title
+click =How to play
+until 60 =Close
+frames 10
+expect Roll right: →/D
+save howto
+click 10% 10%
+frames 10
+until 60 =Settings
+frames 10
+click =Settings
+frames 60
+save options
+key F1 1
+frames 20
+click =Levels
+until 60 Workshop
+frames 10
+save levels
+click =Level 1
+until 60 =Studio · 1
+frames 30
+expect Swipe, press an arrow key
+key ArrowLeft 1
+frames 10
+expect =0
+key KeyH 1
+until 30 Try rolling right.
+frames 10
+save play
+key Escape 1
+until 60 Workshop
+frames 10
+key Escape 1
+until 60 =Continue
+frames 10
+click =Continue
+until 60 =Studio · 1
+frames 10
+key KeyD 1
+until 120 =Painted!
+frames 30
+expect =1 moves · par 1
+save complete
+key Enter 2
+until 60 =Studio · 2
+frames 30
+key ArrowRight 1
+frames 40
+key KeyU 1
+frames 10
+key ArrowDown 1
+frames 40
+key KeyR 1
+frames 10
+key ArrowRight 1
+frames 2
+key ArrowDown 1
+until 120 =Painted!
+frames 10
