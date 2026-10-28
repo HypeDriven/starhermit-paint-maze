@@ -1,0 +1,116 @@
+/* Paint Maze — the browser build's styles.css rewritten class-based for the
+   engine's UI (`npm run css` converts it into assets/ui-style.json). Element
+   selectors, ids, attribute selectors and @media do not convert: every widget
+   names its classes, the world colours (body[data-world]) are token swaps in
+   native/style.ts, and the breakpoints (wide desktop and landscape phones with
+   the controls in a column at the right, portrait with a thumb row under the
+   board) are layouts picked in native/screens.ts. Reduced motion, larger text
+   and the interface size are the runtime's options. */
+
+:root {
+  --bg: #fbf3ea;
+  --bg2: #f1e2d6;
+  --ink: #2b2638;
+  --muted: #6b6478;
+  --surface: #ffffff;
+  --line: #e4d9cd;
+  --accent: #ff5a5f;
+  --accent-ink: #ffffff;
+  --scrim: #1e182d73;
+  --dim: #f6efe8;
+}
+
+* { box-sizing: border-box; }
+
+/* ------------------------------------------------------------- text */
+.h1 { color: var(--ink); font-size: 54px; font-weight: 700; }
+.h2 { color: var(--ink); font-size: 24px; font-weight: 700; }
+.bar-title { color: var(--ink); font-size: 18px; font-weight: 700; }
+.world-name { color: var(--ink); font-size: 17px; font-weight: 700; }
+.tagline { color: var(--muted); font-size: 18px; }
+.muted { color: var(--muted); font-size: 16px; }
+.small { color: var(--muted); font-size: 14px; }
+.p { color: var(--ink); font-size: 16px; }
+.accent { color: var(--accent); font-size: 16px; font-weight: 700; }
+.hud-k { color: var(--muted); font-size: 15px; }
+.hud-v { color: var(--ink); font-size: 18px; font-weight: 700; }
+.stars { color: var(--accent); font-size: 18px; letter-spacing: 2px; }
+.stars-off { color: var(--line); font-size: 18px; letter-spacing: 2px; }
+.lvl-n { color: var(--ink); font-size: 18px; font-weight: 600; }
+.lvl-n-on { color: var(--accent-ink); font-size: 18px; font-weight: 600; }
+.lvl-s { color: var(--accent); font-size: 13px; letter-spacing: 1px; }
+.lvl-s-on { color: var(--accent-ink); font-size: 13px; letter-spacing: 1px; }
+.tip-text { color: var(--ink); font-size: 15px; }
+.toast-text { color: var(--ink); font-size: 16px; }
+.sync-text { color: var(--muted); font-size: 13px; }
+
+/* ------------------------------------------------------------- surfaces */
+.scrim { background: var(--scrim); border-radius: 0; }
+.card { background: var(--surface); border-radius: 18px; padding: 22px; box-shadow: 0 20px 50px #140a284d; }
+.tip { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0; }
+.tip-bar { background: var(--accent); border-radius: 2px; }
+.pill { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+.toast { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+.sync { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+
+/* ------------------------------------------------------------- buttons */
+.btn {
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  min-height: 44px; min-width: 44px; padding: 8px 14px; font-size: 16px; font-weight: 600; text-align: center;
+  box-shadow: 0 2px 0 #281e3c14;
+}
+.btn:hover { box-shadow: 0 3px 10px #281e3c1f; }
+.btn:disabled { opacity: 0.4; box-shadow: none; }
+.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.primary {
+  color: var(--accent-ink); background: var(--accent); border: 1px solid var(--accent); border-radius: 12px;
+  min-height: 44px; min-width: 44px; padding: 8px 14px; font-size: 16px; font-weight: 600; text-align: center;
+  box-shadow: 0 2px 0 #281e3c14;
+}
+.primary:hover { box-shadow: 0 3px 10px #281e3c1f; }
+.primary:disabled { opacity: 0.4; box-shadow: none; }
+.primary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.big {
+  color: var(--accent-ink); background: var(--accent); border: 1px solid var(--accent); border-radius: 12px;
+  min-height: 56px; min-width: 44px; padding: 12px 40px; font-size: 20px; font-weight: 600; text-align: center;
+  box-shadow: 0 2px 0 #281e3c14;
+}
+.big:hover { box-shadow: 0 3px 10px #281e3c1f; }
+.big:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.icon {
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  min-height: 44px; min-width: 44px; padding: 0; font-size: 19px; font-weight: 600; text-align: center;
+  box-shadow: 0 2px 0 #281e3c14;
+}
+.icon:hover { box-shadow: 0 3px 10px #281e3c1f; }
+.icon:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.dir {
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  min-height: 44px; padding: 0; font-size: 24px; font-weight: 600; text-align: center;
+  box-shadow: 0 2px 0 #281e3c14;
+}
+.dir:hover { box-shadow: 0 3px 10px #281e3c1f; }
+.dir:disabled { opacity: 0.4; box-shadow: none; }
+.dir:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.dir-hint {
+  color: var(--accent-ink); background: var(--accent); border: 1px solid var(--accent); border-radius: 12px;
+  min-height: 44px; padding: 0; font-size: 24px; font-weight: 600; text-align: center;
+  box-shadow: 0 2px 0 #281e3c14;
+}
+.dir-hint:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.dir-hint:disabled { opacity: 0.4; box-shadow: none; }
+.tool {
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  min-height: 44px; min-width: 44px; padding: 8px 14px; font-size: 15px; font-weight: 600; text-align: center;
+  box-shadow: 0 2px 0 #281e3c14;
+}
+.tool:hover { box-shadow: 0 3px 10px #281e3c1f; }
+.tool:disabled { opacity: 0.4; box-shadow: none; }
+.tool:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.level {
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  min-height: 64px; padding: 6px; text-align: center; box-shadow: 0 2px 0 #281e3c14;
+}
+.level:hover { box-shadow: 0 3px 10px #281e3c1f; }
+.level:disabled { opacity: 0.4; box-shadow: none; }
+.level:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }

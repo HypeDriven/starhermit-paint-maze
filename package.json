@@ -1,16 +1,19 @@
 {
   "name": "paint-maze",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
-  "description": "Paint Maze - roll a paint ball through corridor mazes until every tile is painted (StarHermit #55)",
+  "description": "Paint Maze - roll a paint ball through corridor mazes until every tile is painted (StarHermit #55), on the StarHermit engine",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
-    "start": "node tools/serve.mjs",
+    "test": "npm run test:unit && npm run test:native",
+    "test:unit": "node --test tests/*.test.mjs",
+    "test:native": "node tests/native.mjs",
+    "test:browser": "node tools/browser-play.mjs .",
     "levels": "node tools/generate-levels.mjs",
-    "test": "node --test tests/*.test.mjs",
-    "test:e2e": "node tests/e2e.mjs",
-    "test:hosted": "node tests/hosted.mjs"
+    "plays": "node tools/gen-plays.mjs",
+    "package": "node tools/package-web.mjs",
+    "css": "node tools/css.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.62.1"

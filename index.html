@@ -1,143 +1,18 @@
-<!DOCTYPE html>
+<!doctype html>
+<!-- StarHermit web loader, written by starhermit package --web: it pins the engine by hash and holds no script of its own; package again rather than edit it. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Paint Maze — roll a paint ball through corridor mazes until every tile is painted.">
-<meta name="theme-color" content="#fbf3ea">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="icon" href="favicon.png" type="image/png">
-<link rel="apple-touch-icon" href="icon.png">
-<title>Paint Maze</title>
-<script src="game-options.js" data-game="paint-maze"></script>
-<script src="ui-scale.js"></script>
-<link rel="stylesheet" href="styles.css">
-<script src="browser-guard.js"></script>
-<script src="sh-language.js"></script>
-<script src="starhermit-sdk.js"></script>
-<script src="src/gpu-level.js"></script>
-<script type="module" src="src/main.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="favicon.png">
+<title>Paint Maze #55</title>
+<style>html,body{margin:0;height:100%;background:#000;color:#eee;font:16px/1.5 system-ui,sans-serif}canvas{display:block;width:100%;height:100%}.starhermit-message{position:fixed;inset:0;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;background:#000}.starhermit-message[hidden]{display:none}.starhermit-late{animation:starhermit-late 0s 20s both}@keyframes starhermit-late{from{visibility:hidden}to{visibility:visible}}</style>
+<script type="module" src="https://wiki.starhermit.com/engine/1.19.1/starhermit.js" integrity="sha384-9TOdzhxCkVPMPhnFc/0FpNWOkM2E7PKsucfQjpN+MUwIqEcmC7uoKb/LFuEvz0yr" crossorigin="anonymous"></script>
+<script type="application/json" id="starhermit-config">{"manifest":{"integrity":"sha384-PkSph+S8KH+6UXDRVsT0RFVg6OcRljDWJIPZVryGWwkoRmKgiwd47GcNflWSisTy","url":"https://wiki.starhermit.com/engine/1.19.1/manifest.json"}}</script>
 </head>
-<body data-screen="title">
-<main id="app">
-
-  <section id="screen-title" class="screen active" aria-labelledby="title-heading">
-    <div class="title-card">
-      <div class="logo" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-      <h1 id="title-heading">Paint Maze</h1>
-      <p class="tagline" data-i18n="tagline"></p>
-      <p id="hello" class="muted" hidden></p>
-      <button id="btn-play" class="btn primary big" data-i18n="play"></button>
-      <div class="row">
-        <button id="btn-levels" class="btn" data-i18n="levels"></button>
-        <button id="btn-howto" class="btn" data-i18n="howTo"></button>
-        <button id="btn-settings" class="btn" data-i18n="settings"></button>
-      </div>
-      <div class="row">
-        <button id="btn-signin" class="btn" data-i18n="shSignIn" hidden></button>
-        <button id="btn-invite" class="btn" data-i18n="shInvite" hidden></button>
-      </div>
-      <p id="title-stars" class="muted"></p>
-      <p id="load-error" class="error" role="alert" hidden></p>
-    </div>
-  </section>
-
-  <section id="screen-levels" class="screen" aria-labelledby="levels-heading">
-    <header class="bar">
-      <button class="btn icon" data-goto="title" data-i18n-aria="back">←</button>
-      <h2 id="levels-heading" data-i18n="levels"></h2>
-      <span id="levels-stars" class="pill"></span>
-    </header>
-    <div id="world-list" class="world-list"></div>
-  </section>
-
-  <section id="screen-game" class="screen" aria-labelledby="level-title">
-    <header class="bar">
-      <button id="btn-menu" class="btn icon" data-i18n-aria="levels">☰</button>
-      <h2 id="level-title"></h2>
-      <button id="btn-settings-game" class="btn icon" data-i18n-aria="settings">⚙</button>
-    </header>
-    <div class="hud" aria-live="off">
-      <div><span data-i18n="moves"></span> <b id="hud-moves">0</b></div>
-      <div><span data-i18n="par"></span> <b id="hud-par">0</b></div>
-      <div><span data-i18n="left"></span> <b id="hud-left">0</b></div>
-      <div id="hud-stars" class="stars" aria-hidden="true"></div>
-    </div>
-    <p id="tip" class="tip" hidden></p>
-    <div class="play-area">
-      <div class="board-wrap">
-        <canvas id="board" role="img"></canvas>
-        <div id="fps" class="fps" hidden></div>
-      </div>
-      <div class="controls">
-        <div class="dpad" role="group" aria-label="Roll">
-          <button class="btn dir" data-dir="L">←</button>
-          <button class="btn dir" data-dir="U">↑</button>
-          <button class="btn dir" data-dir="D">↓</button>
-          <button class="btn dir" data-dir="R">→</button>
-        </div>
-        <div class="tools">
-          <button id="btn-undo" class="btn"><span aria-hidden="true">↶</span> <span data-i18n="undo"></span></button>
-          <button id="btn-restart" class="btn"><span aria-hidden="true">↻</span> <span data-i18n="restart"></span></button>
-          <button id="btn-hint" class="btn"><span aria-hidden="true">💡</span> <span data-i18n="hint"></span></button>
-        </div>
-      </div>
-    </div>
-    <p id="status" class="sr-only" aria-live="polite"></p>
-  </section>
-
-</main>
-
-<div id="overlay-complete" class="overlay" hidden>
-  <div class="card" role="dialog" aria-modal="true" aria-labelledby="complete-title">
-    <div id="complete-stars" class="stars big" aria-hidden="true"></div>
-    <h2 id="complete-title"></h2>
-    <p id="complete-sub"></p>
-    <p id="complete-extra" class="accent"></p>
-    <p id="complete-lb" role="status" hidden></p>
-    <div class="row">
-      <button id="btn-replay" class="btn" data-i18n="replay"></button>
-      <button id="btn-complete-levels" class="btn" data-i18n="levels"></button>
-      <button id="btn-next" class="btn primary" data-i18n="next"></button>
-    </div>
-  </div>
-</div>
-
-<div id="overlay-howto" class="overlay" hidden>
-  <div class="card" role="dialog" aria-modal="true" aria-labelledby="howto-title">
-    <h2 id="howto-title" data-i18n="howTo"></h2>
-    <p data-i18n="howToBody"></p>
-    <p id="howto-keys" class="muted"></p>
-    <button class="btn primary close-overlay" data-i18n="close"></button>
-  </div>
-</div>
-
-<div id="overlay-settings" class="overlay" hidden>
-  <div class="card settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-    <h2 id="settings-title" data-i18n="settingsTitle"></h2>
-    <div class="tabs" role="tablist">
-      <button id="tab-general" class="btn tab" role="tab" aria-selected="true" aria-controls="panel-general" data-i18n="general"></button>
-      <button id="tab-graphics" class="btn tab" role="tab" aria-selected="false" aria-controls="panel-graphics" data-i18n="graphics"></button>
-    </div>
-    <div id="panel-general" role="tabpanel" aria-labelledby="tab-general">
-      <label class="field"><span data-i18n="language"></span><select id="set-locale"></select></label>
-      <p id="set-locale-status" class="muted" role="status"></p>
-      <label class="field"><span data-i18n="volume"></span><input id="set-volume" type="range" min="0" max="100" step="5"></label>
-      <label class="field check"><input id="set-motion" type="checkbox"><span data-i18n="reducedMotion"></span></label>
-    </div>
-    <div id="panel-graphics" role="tabpanel" aria-labelledby="tab-graphics" hidden>
-      <label class="field"><span data-i18n="quality"></span><select id="gfx-preset"></select></label>
-      <label class="field"><span><span data-i18n="renderScale"></span> <b id="gfx-scale-val"></b></span><input id="gfx-scale" type="range" min="50" max="200" step="10"></label>
-      <div id="gfx-cats"></div>
-      <label class="field check"><input id="gfx-adaptive" type="checkbox"><span data-i18n="adaptive"></span></label>
-      <label class="field check"><input id="gfx-fps" type="checkbox"><span data-i18n="showFps"></span></label>
-      <p id="gfx-summary" class="muted"></p>
-    </div>
-    <button class="btn primary close-overlay" data-i18n="done"></button>
-  </div>
-</div>
-
-<div id="sync" class="sync" hidden></div>
-<div id="toast" class="toast" role="status" hidden></div>
+<body>
+<canvas></canvas>
+<div id="starhermit-status" class="starhermit-message" role="status"><span>Loading Paint Maze #55…</span><span class="starhermit-late">If the game has not started, this browser cannot run it or its engine (StarHermit 1.19.1) could not be loaded: reload the page, or open it in a current Chrome, Edge, Firefox or Safari.</span></div>
+<noscript><p class="starhermit-message">This game needs JavaScript.</p></noscript>
 </body>
 </html>

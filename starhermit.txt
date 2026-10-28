@@ -1,14 +1,44 @@
 name=Paint Maze #55
 description=Roll a paint ball through corridor mazes until every tile is painted, in as few moves as possible.
-launch=index.html
 owner=2712e04e-461b-4d23-81ae-e40b429128a8
 server=score-script.js
 cover=cover.jpg
-control.rollUp=ArrowUp+KeyW | Roll up
-control.rollDown=ArrowDown+KeyS | Roll down
-control.rollLeft=ArrowLeft+KeyA | Roll left
-control.rollRight=ArrowRight+KeyD | Roll right
+
+# StarHermit engine script game: one package, played natively by the
+# StarHermit client and in browsers by the engine's web runtime. Browsers open
+# launch=index.html, the loader `npm run package` writes (it pins the engine
+# on wiki.starhermit.com by hash; never edit it). Re-run `npm run package`
+# after every change and commit index.html + starhermit-files.json.
+launch=index.html
+engine.api=1
+engine.entry=native/main.ts
+engine.version=1.19.1
+engine.minor=20
+engine.capabilities=platform,storage,clipboard
+
+# Keyboard controls (players rebind keys and pads in the runtime's Options).
+# The board also takes the pointer or a finger: swipe to roll, or tap a tile
+# in the ball's row or column to roll toward it; every action has a button.
+# (The browser build's action names were camelCase: rollUp → roll_up, so
+# rebinds made there do not carry over.)
+engine.group.roll_up=Roll
+control.roll_up=ArrowUp+KeyW | Roll up
+control.roll_down=ArrowDown+KeyS | Roll down
+control.roll_left=ArrowLeft+KeyA | Roll left
+control.roll_right=ArrowRight+KeyD | Roll right
+engine.group.undo=Level
 control.undo=KeyU+KeyZ | Undo
 control.restart=KeyR | Restart level
 control.hint=KeyH | Hint
 control.back=Escape | Back / close
+
+# Gamepad defaults (the browser build had none): the D-pad or left stick
+# rolls, West undoes, North hints, Select restarts, East or Start goes back.
+engine.gamepad.roll_up=DpadUp+LeftStickUp
+engine.gamepad.roll_down=DpadDown+LeftStickDown
+engine.gamepad.roll_left=DpadLeft+LeftStickLeft
+engine.gamepad.roll_right=DpadRight+LeftStickRight
+engine.gamepad.undo=West
+engine.gamepad.hint=North
+engine.gamepad.restart=Select
+engine.gamepad.back=East+Start
