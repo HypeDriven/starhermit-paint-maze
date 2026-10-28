@@ -1,19 +1,17 @@
 // UI strings for the nine supported locales. `t(key, vars)` fills {name} slots.
-
 export const LOCALES = ['en-US', 'en-GB', 'es-419', 'es-ES', 'de-DE', 'fr-FR', 'fr-CA', 'pt-BR', 'it-IT'];
 export const LOCALE_NAMES = {
   'en-US': 'English (US)', 'en-GB': 'English (UK)', 'es-419': 'Español (Latinoamérica)', 'es-ES': 'Español (España)',
   'de-DE': 'Deutsch', 'fr-FR': 'Français (France)', 'fr-CA': 'Français (Canada)', 'pt-BR': 'Português (Brasil)', 'it-IT': 'Italiano',
 };
-
 const en = {
   shSignIn: 'Sign in with StarHermit', shInvite: 'Invite a friend', shCopied: 'Invite link copied to the clipboard.', shCopyFailed: 'Could not copy the invite link.', shSignedOut: 'Signed out — playing locally.',
   tagline: 'Roll the paint. Cover every tile.',
   play: 'Play', continue: 'Continue', levels: 'Levels', settings: 'Settings', howTo: 'How to play',
-  back: 'Back', close: 'Close', done: 'Done', menu: 'Menu',
+  back: 'Back', close: 'Close', menu: 'Menu',
   'world.studio': 'Studio', 'world.gallery': 'Gallery', 'world.workshop': 'Workshop', 'world.atelier': 'Atelier',
-  level: 'Level {n}', levelOf: '{world} · {n}', moves: 'Moves', par: 'Par', best: 'Best', left: 'Left',
-  starsTotal: '{n} / {total} stars', locked: 'Locked', worldLocked: 'Earn {n} stars to open',
+  level: 'Level {n}', levelOf: '{world} · {n}', moves: 'Moves', par: 'Par', left: 'Left',
+  starsTotal: '{n} / {total} stars', locked: 'Locked',
   undo: 'Undo', restart: 'Restart', hint: 'Hint',
   'dir.U': 'up', 'dir.D': 'down', 'dir.L': 'left', 'dir.R': 'right',
   rollAria: 'Roll {dir}',
@@ -30,16 +28,8 @@ const en = {
   hintMsg: 'Try rolling {dir}.', hintStuck: 'This position can’t be finished. Undo or restart.',
   blocked: 'A wall blocks that way.', rolled: 'Rolled {dir}: {n} new tiles, {left} left.',
   howToBody: 'Roll the paint ball with a swipe, the arrow keys (or W A S D) or the on-screen arrows. It rolls in a straight line until a wall stops it, painting every tile on the way. Paint every tile to finish. Finish in par moves or fewer for three stars. Undo (U), Restart (R) and Hint (H) are always free.',
-  settingsTitle: 'Settings', general: 'General', graphics: 'Graphics', language: 'Language', volume: 'Sound volume',
-  reducedMotion: 'Reduce motion',
-  quality: 'Quality', auto: 'Auto (detected: {tier})', low: 'Low', balanced: 'Balanced', high: 'High', ultra: 'Ultra',
-  renderScale: 'Render scale', fromPreset: 'From preset ({v})', off: 'Off', on: 'On', 'opt.low': 'Low', 'opt.high': 'High',
-  'cat.shadows': 'Shadows', 'cat.glow': 'Paint glow', 'cat.particles': 'Particles', 'cat.ambient': 'Ambient motion',
-  adaptive: 'Adaptive resolution', showFps: 'Show frame rate', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'no effects', gpuLevel: 'Level {n}',
   syncSaving: 'Saving…', syncSynced: 'Saved to cloud', syncError: 'Cloud save failed. Retrying later.', hello: 'Hi, {name}', playerId: 'Player {id}',
-  loadError: 'The levels could not be loaded. Check your connection and reload.',
 };
-
 const T = {
   'en-US': en,
   'en-GB': {
@@ -52,10 +42,10 @@ const T = {
     shSignIn: 'Iniciar sesión con StarHermit', shInvite: 'Invitar a un amigo', shCopied: 'Enlace de invitación copiado al portapapeles.', shCopyFailed: 'No se pudo copiar el enlace de invitación.', shSignedOut: 'Sesión cerrada: juegas en modo local.',
     tagline: 'Rueda la pintura. Cubre cada casilla.',
     play: 'Jugar', continue: 'Continuar', levels: 'Niveles', settings: 'Ajustes', howTo: 'Cómo jugar',
-    back: 'Atrás', close: 'Cerrar', done: 'Listo', menu: 'Menú',
+    back: 'Atrás', close: 'Cerrar', menu: 'Menú',
     'world.studio': 'Estudio', 'world.gallery': 'Galería', 'world.workshop': 'Taller', 'world.atelier': 'Atelier',
-    level: 'Nivel {n}', levelOf: '{world} · {n}', moves: 'Movimientos', par: 'Par', best: 'Récord', left: 'Faltan',
-    starsTotal: '{n} / {total} estrellas', locked: 'Bloqueado', worldLocked: 'Consigue {n} estrellas para abrir',
+    level: 'Nivel {n}', levelOf: '{world} · {n}', moves: 'Movimientos', par: 'Par', left: 'Faltan',
+    starsTotal: '{n} / {total} estrellas', locked: 'Bloqueado', 
     undo: 'Deshacer', restart: 'Reiniciar', hint: 'Pista',
     'dir.U': 'arriba', 'dir.D': 'abajo', 'dir.L': 'a la izquierda', 'dir.R': 'a la derecha',
     rollAria: 'Rodar {dir}',
@@ -72,24 +62,17 @@ const T = {
     hintMsg: 'Prueba rodar {dir}.', hintStuck: 'Desde aquí no se puede terminar. Deshaz o reinicia.',
     blocked: 'Una pared bloquea ese camino.', rolled: 'Rodó {dir}: {n} casillas nuevas, faltan {left}.',
     howToBody: 'Rueda la bola de pintura deslizando, con las flechas (o W A S D) o con las flechas en pantalla. Rueda en línea recta hasta que una pared la detiene y pinta cada casilla en el camino. Pinta todas las casillas para terminar. Termina en el par o menos para ganar tres estrellas. Deshacer (U), Reiniciar (R) y Pista (H) siempre son gratis.',
-    settingsTitle: 'Ajustes', general: 'General', graphics: 'Gráficos', language: 'Idioma', volume: 'Volumen del sonido',
-    reducedMotion: 'Reducir movimiento',
-    quality: 'Calidad', auto: 'Automática (detectada: {tier})', low: 'Baja', balanced: 'Equilibrada', high: 'Alta', ultra: 'Ultra',
-    renderScale: 'Escala de renderizado', fromPreset: 'Según el ajuste ({v})', off: 'No', on: 'Sí', 'opt.low': 'Baja', 'opt.high': 'Alta',
-    'cat.shadows': 'Sombras', 'cat.glow': 'Brillo de pintura', 'cat.particles': 'Partículas', 'cat.ambient': 'Movimiento ambiental',
-    adaptive: 'Resolución adaptable', showFps: 'Mostrar FPS', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'sin efectos', gpuLevel: 'Nivel {n}',
     syncSaving: 'Guardando…', syncSynced: 'Guardado en la nube', syncError: 'Falló el guardado en la nube. Se reintentará.', hello: 'Hola, {name}', playerId: 'Jugador {id}',
-    loadError: 'No se pudieron cargar los niveles. Revisa tu conexión y recarga.',
   },
   'es-ES': null, // filled below from es-419 with Spain-specific overrides
   'de-DE': {
     shSignIn: 'Mit StarHermit anmelden', shInvite: 'Freund einladen', shCopied: 'Einladungslink in die Zwischenablage kopiert.', shCopyFailed: 'Einladungslink konnte nicht kopiert werden.', shSignedOut: 'Abgemeldet – du spielst lokal weiter.',
     tagline: 'Roll die Farbe. Bedecke jedes Feld.',
     play: 'Spielen', continue: 'Weiter', levels: 'Level', settings: 'Einstellungen', howTo: 'Anleitung',
-    back: 'Zurück', close: 'Schließen', done: 'Fertig', menu: 'Menü',
+    back: 'Zurück', close: 'Schließen', menu: 'Menü',
     'world.studio': 'Studio', 'world.gallery': 'Galerie', 'world.workshop': 'Werkstatt', 'world.atelier': 'Atelier',
-    level: 'Level {n}', levelOf: '{world} · {n}', moves: 'Züge', par: 'Par', best: 'Bestwert', left: 'Übrig',
-    starsTotal: '{n} / {total} Sterne', locked: 'Gesperrt', worldLocked: '{n} Sterne zum Freischalten',
+    level: 'Level {n}', levelOf: '{world} · {n}', moves: 'Züge', par: 'Par', left: 'Übrig',
+    starsTotal: '{n} / {total} Sterne', locked: 'Gesperrt', 
     undo: 'Rückgängig', restart: 'Neustart', hint: 'Tipp',
     'dir.U': 'nach oben', 'dir.D': 'nach unten', 'dir.L': 'nach links', 'dir.R': 'nach rechts',
     rollAria: '{dir} rollen',
@@ -106,23 +89,16 @@ const T = {
     hintMsg: 'Versuch es {dir}.', hintStuck: 'Von hier aus lässt es sich nicht lösen. Mach Züge rückgängig oder starte neu.',
     blocked: 'Eine Wand versperrt den Weg.', rolled: '{dir} gerollt: {n} neue Felder, {left} übrig.',
     howToBody: 'Rolle die Farbkugel per Wischen, mit den Pfeiltasten (oder W A S D) oder den Pfeilen auf dem Bildschirm. Sie rollt geradeaus, bis eine Wand sie stoppt, und bemalt jedes Feld unterwegs. Bemale alle Felder, um das Level zu schaffen. Mit höchstens Par-Zügen gibt es drei Sterne. Rückgängig (U), Neustart (R) und Tipp (H) sind immer kostenlos.',
-    settingsTitle: 'Einstellungen', general: 'Allgemein', graphics: 'Grafik', language: 'Sprache', volume: 'Lautstärke',
-    reducedMotion: 'Bewegung reduzieren',
-    quality: 'Qualität', auto: 'Automatisch (erkannt: {tier})', low: 'Niedrig', balanced: 'Ausgewogen', high: 'Hoch', ultra: 'Ultra',
-    renderScale: 'Renderskalierung', fromPreset: 'Laut Voreinstellung ({v})', off: 'Aus', on: 'An', 'opt.low': 'Niedrig', 'opt.high': 'Hoch',
-    'cat.shadows': 'Schatten', 'cat.glow': 'Farbglanz', 'cat.particles': 'Partikel', 'cat.ambient': 'Umgebungsbewegung',
-    adaptive: 'Adaptive Auflösung', showFps: 'Bildrate anzeigen', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'keine Effekte', gpuLevel: 'Stufe {n}',
     syncSaving: 'Speichern…', syncSynced: 'In der Cloud gespeichert', syncError: 'Cloud-Speichern fehlgeschlagen. Neuer Versuch später.', hello: 'Hallo, {name}', playerId: 'Spieler {id}',
-    loadError: 'Die Level konnten nicht geladen werden. Prüfe deine Verbindung und lade neu.',
   },
   'fr-FR': {
     shSignIn: 'Se connecter avec StarHermit', shInvite: 'Inviter un ami', shCopied: 'Lien d’invitation copié dans le presse-papiers.', shCopyFailed: 'Impossible de copier le lien d’invitation.', shSignedOut: 'Déconnecté — vous jouez en local.',
     tagline: 'Faites rouler la peinture. Couvrez chaque case.',
     play: 'Jouer', continue: 'Continuer', levels: 'Niveaux', settings: 'Paramètres', howTo: 'Comment jouer',
-    back: 'Retour', close: 'Fermer', done: 'OK', menu: 'Menu',
+    back: 'Retour', close: 'Fermer', menu: 'Menu',
     'world.studio': 'Studio', 'world.gallery': 'Galerie', 'world.workshop': 'Atelier', 'world.atelier': 'Grand atelier',
-    level: 'Niveau {n}', levelOf: '{world} · {n}', moves: 'Coups', par: 'Par', best: 'Record', left: 'Restant',
-    starsTotal: '{n} / {total} étoiles', locked: 'Verrouillé', worldLocked: '{n} étoiles pour débloquer',
+    level: 'Niveau {n}', levelOf: '{world} · {n}', moves: 'Coups', par: 'Par', left: 'Restant',
+    starsTotal: '{n} / {total} étoiles', locked: 'Verrouillé', 
     undo: 'Annuler', restart: 'Recommencer', hint: 'Indice',
     'dir.U': 'vers le haut', 'dir.D': 'vers le bas', 'dir.L': 'vers la gauche', 'dir.R': 'vers la droite',
     rollAria: 'Rouler {dir}',
@@ -139,24 +115,17 @@ const T = {
     hintMsg: 'Essayez de rouler {dir}.', hintStuck: 'Impossible de finir depuis ici. Annulez ou recommencez.',
     blocked: 'Un mur bloque ce chemin.', rolled: 'Roulé {dir} : {n} nouvelles cases, {left} restantes.',
     howToBody: 'Faites rouler la bille de peinture en glissant, avec les flèches (ou W A S D) ou les flèches à l’écran. Elle roule tout droit jusqu’à ce qu’un mur l’arrête et peint chaque case sur son passage. Peignez toutes les cases pour finir. Terminez en par ou moins pour trois étoiles. Annuler (U), Recommencer (R) et Indice (H) sont toujours gratuits.',
-    settingsTitle: 'Paramètres', general: 'Général', graphics: 'Graphismes', language: 'Langue', volume: 'Volume sonore',
-    reducedMotion: 'Réduire les animations',
-    quality: 'Qualité', auto: 'Auto (détecté : {tier})', low: 'Faible', balanced: 'Équilibrée', high: 'Élevée', ultra: 'Ultra',
-    renderScale: 'Échelle de rendu', fromPreset: 'Selon le préréglage ({v})', off: 'Non', on: 'Oui', 'opt.low': 'Faible', 'opt.high': 'Élevé',
-    'cat.shadows': 'Ombres', 'cat.glow': 'Éclat de la peinture', 'cat.particles': 'Particules', 'cat.ambient': 'Mouvement ambiant',
-    adaptive: 'Résolution adaptative', showFps: 'Afficher les IPS', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'aucun effet', gpuLevel: 'Niveau {n}',
     syncSaving: 'Enregistrement…', syncSynced: 'Enregistré dans le cloud', syncError: 'Échec de l’enregistrement cloud. Nouvel essai plus tard.', hello: 'Bonjour, {name}', playerId: 'Joueur {id}',
-    loadError: 'Impossible de charger les niveaux. Vérifiez votre connexion et rechargez.',
   },
   'fr-CA': null, // filled below from fr-FR with Canadian overrides
   'pt-BR': {
     shSignIn: 'Entrar com StarHermit', shInvite: 'Convidar um amigo', shCopied: 'Link de convite copiado para a área de transferência.', shCopyFailed: 'Não foi possível copiar o link de convite.', shSignedOut: 'Sessão encerrada — jogando localmente.',
     tagline: 'Role a tinta. Cubra cada casa.',
     play: 'Jogar', continue: 'Continuar', levels: 'Fases', settings: 'Configurações', howTo: 'Como jogar',
-    back: 'Voltar', close: 'Fechar', done: 'Pronto', menu: 'Menu',
+    back: 'Voltar', close: 'Fechar', menu: 'Menu',
     'world.studio': 'Estúdio', 'world.gallery': 'Galeria', 'world.workshop': 'Oficina', 'world.atelier': 'Ateliê',
-    level: 'Fase {n}', levelOf: '{world} · {n}', moves: 'Jogadas', par: 'Par', best: 'Recorde', left: 'Faltam',
-    starsTotal: '{n} / {total} estrelas', locked: 'Bloqueada', worldLocked: 'Ganhe {n} estrelas para abrir',
+    level: 'Fase {n}', levelOf: '{world} · {n}', moves: 'Jogadas', par: 'Par', left: 'Faltam',
+    starsTotal: '{n} / {total} estrelas', locked: 'Bloqueada', 
     undo: 'Desfazer', restart: 'Recomeçar', hint: 'Dica',
     'dir.U': 'para cima', 'dir.D': 'para baixo', 'dir.L': 'para a esquerda', 'dir.R': 'para a direita',
     rollAria: 'Rolar {dir}',
@@ -173,23 +142,16 @@ const T = {
     hintMsg: 'Tente rolar {dir}.', hintStuck: 'Não dá para terminar a partir daqui. Desfaça ou recomece.',
     blocked: 'Uma parede bloqueia esse caminho.', rolled: 'Rolou {dir}: {n} casas novas, faltam {left}.',
     howToBody: 'Role a bola de tinta deslizando, com as setas (ou W A S D) ou com as setas na tela. Ela rola em linha reta até uma parede pará-la, pintando cada casa pelo caminho. Pinte todas as casas para terminar. Termine no par ou menos para ganhar três estrelas. Desfazer (U), Recomeçar (R) e Dica (H) são sempre grátis.',
-    settingsTitle: 'Configurações', general: 'Geral', graphics: 'Gráficos', language: 'Idioma', volume: 'Volume do som',
-    reducedMotion: 'Reduzir movimento',
-    quality: 'Qualidade', auto: 'Automática (detectada: {tier})', low: 'Baixa', balanced: 'Equilibrada', high: 'Alta', ultra: 'Ultra',
-    renderScale: 'Escala de renderização', fromPreset: 'Conforme a predefinição ({v})', off: 'Não', on: 'Sim', 'opt.low': 'Baixa', 'opt.high': 'Alta',
-    'cat.shadows': 'Sombras', 'cat.glow': 'Brilho da tinta', 'cat.particles': 'Partículas', 'cat.ambient': 'Movimento ambiente',
-    adaptive: 'Resolução adaptativa', showFps: 'Mostrar FPS', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'sem efeitos', gpuLevel: 'Nível {n}',
     syncSaving: 'Salvando…', syncSynced: 'Salvo na nuvem', syncError: 'Falha ao salvar na nuvem. Tentaremos de novo.', hello: 'Olá, {name}', playerId: 'Jogador {id}',
-    loadError: 'Não foi possível carregar as fases. Verifique sua conexão e recarregue.',
   },
   'it-IT': {
     shSignIn: 'Accedi con StarHermit', shInvite: 'Invita un amico', shCopied: 'Link di invito copiato negli appunti.', shCopyFailed: 'Impossibile copiare il link di invito.', shSignedOut: 'Disconnesso: giochi in locale.',
     tagline: 'Fai rotolare la vernice. Copri ogni casella.',
     play: 'Gioca', continue: 'Continua', levels: 'Livelli', settings: 'Impostazioni', howTo: 'Come si gioca',
-    back: 'Indietro', close: 'Chiudi', done: 'Fatto', menu: 'Menu',
+    back: 'Indietro', close: 'Chiudi', menu: 'Menu',
     'world.studio': 'Studio', 'world.gallery': 'Galleria', 'world.workshop': 'Laboratorio', 'world.atelier': 'Atelier',
-    level: 'Livello {n}', levelOf: '{world} · {n}', moves: 'Mosse', par: 'Par', best: 'Record', left: 'Mancano',
-    starsTotal: '{n} / {total} stelle', locked: 'Bloccato', worldLocked: 'Ottieni {n} stelle per sbloccare',
+    level: 'Livello {n}', levelOf: '{world} · {n}', moves: 'Mosse', par: 'Par', left: 'Mancano',
+    starsTotal: '{n} / {total} stelle', locked: 'Bloccato', 
     undo: 'Annulla', restart: 'Ricomincia', hint: 'Suggerimento',
     'dir.U': 'in alto', 'dir.D': 'in basso', 'dir.L': 'a sinistra', 'dir.R': 'a destra',
     rollAria: 'Rotola {dir}',
@@ -206,17 +168,9 @@ const T = {
     hintMsg: 'Prova a rotolare {dir}.', hintStuck: 'Da qui non si può finire. Annulla o ricomincia.',
     blocked: 'Un muro blocca quella direzione.', rolled: 'Rotolato {dir}: {n} caselle nuove, ne mancano {left}.',
     howToBody: 'Fai rotolare la palla di vernice scorrendo, con le frecce (o W A S D) o con le frecce sullo schermo. Rotola dritta finché un muro non la ferma e dipinge ogni casella lungo il percorso. Dipingi tutte le caselle per finire. Finisci entro il par per tre stelle. Annulla (U), Ricomincia (R) e Suggerimento (H) sono sempre gratuiti.',
-    settingsTitle: 'Impostazioni', general: 'Generali', graphics: 'Grafica', language: 'Lingua', volume: 'Volume audio',
-    reducedMotion: 'Riduci movimento',
-    quality: 'Qualità', auto: 'Automatica (rilevata: {tier})', low: 'Bassa', balanced: 'Bilanciata', high: 'Alta', ultra: 'Ultra',
-    renderScale: 'Scala di rendering', fromPreset: 'Da preimpostazione ({v})', off: 'No', on: 'Sì', 'opt.low': 'Bassa', 'opt.high': 'Alta',
-    'cat.shadows': 'Ombre', 'cat.glow': 'Bagliore vernice', 'cat.particles': 'Particelle', 'cat.ambient': 'Movimento ambientale',
-    adaptive: 'Risoluzione adattiva', showFps: 'Mostra FPS', gfxSummary: '{effects} · {w}×{h} px', noEffects: 'nessun effetto', gpuLevel: 'Livello {n}',
     syncSaving: 'Salvataggio…', syncSynced: 'Salvato nel cloud', syncError: 'Salvataggio cloud non riuscito. Nuovo tentativo più tardi.', hello: 'Ciao, {name}', playerId: 'Giocatore {id}',
-    loadError: 'Impossibile caricare i livelli. Controlla la connessione e ricarica.',
   },
 };
-
 T['es-ES'] = {
   ...T['es-419'],
   shCopyFailed: 'No se ha podido copiar el enlace de invitación.', shSignedOut: 'Sesión cerrada: juegas en local.',
@@ -225,21 +179,18 @@ T['es-ES'] = {
   tutWorld: 'Llegan laberintos más grandes. ¿Atascado? La pista muestra el siguiente tiro desde donde estás.',
   hintMsg: 'Prueba a rodar {dir}.',
   allDone: 'Todos los laberintos están pintados. ¡Buen trabajo!',
-  loadError: 'No se han podido cargar los niveles. Comprueba tu conexión y recarga.',
   syncError: 'Ha fallado el guardado en la nube. Se reintentará.',
 };
 T['fr-CA'] = {
   ...T['fr-FR'],
   lbPosting: 'Envoi du pointage au classement…', lbPosted: 'Pointage envoyé au classement.', lbNotPosted: 'Pointage non envoyé au classement.',
-  settings: 'Réglages', settingsTitle: 'Réglages',
+  settings: 'Réglages', 
   tut1: 'Glissez, appuyez sur une flèche du clavier ou touchez une flèche pour rouler. La bille roule jusqu’à ce qu’elle frappe un mur.',
   tutWorld: 'De plus grands labyrinthes s’en viennent. Bloqué? L’indice montre le prochain coup à partir de votre position.',
   complete: 'Peint!', newBest: 'Nouveau record!', worldDone: '{world} terminé!', allDone: 'Tous les labyrinthes sont peints. Beau travail!',
-  auto: 'Auto (détecté : {tier})', syncSynced: 'Enregistré dans le nuage', syncError: 'Échec de l’enregistrement dans le nuage. Nouvel essai plus tard.',
+  syncSynced: 'Enregistré dans le nuage', syncError: 'Échec de l’enregistrement dans le nuage. Nouvel essai plus tard.',
 };
-
 let current = 'en-US';
-
 /** Best supported locale for a BCP-47 tag (exact, then region fallback, then language). */
 export function matchLocale(tag) {
   if (!tag) return 'en-US';
@@ -250,17 +201,14 @@ export function matchLocale(tag) {
   if (lang === 'en') return ['GB', 'UK', 'IE', 'AU', 'NZ'].includes(region) ? 'en-GB' : 'en-US';
   return LOCALES.find((l) => l.startsWith(lang + '-')) || 'en-US';
 }
-
 export function setLocale(loc) {
   current = LOCALES.includes(loc) ? loc : 'en-US';
   if (typeof document !== 'undefined') document.documentElement.lang = current;
 }
 export const getLocale = () => current;
-
 export function t(key, vars) {
   let s = T[current][key] ?? en[key] ?? key;
   if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
   return s;
 }
-
 export const STRINGS = T;
