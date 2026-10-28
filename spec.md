@@ -1,7 +1,7 @@
 # Paint Maze — Specification
 
 **Status:** running spec, describing the game as it ships today.
-**Genre:** coverage puzzle · **Players:** 1 · **Platforms:** desktop and mobile browsers, portrait and landscape.
+**Genre:** coverage puzzle · **Players:** 1 · **Platforms:** the StarHermit engine (engine 1.19.1, `engine.minor=20`): natively in the StarHermit client and in browsers through the engine's web runtime; desktop and phones, portrait and landscape.
 
 ## Game
 
@@ -9,112 +9,71 @@ A paint ball sits in a corridor maze. Each roll sends it in a straight line unti
 
 **Scoring.** Each level has a par, which is the optimal number of rolls. A finish at or under par earns 3 stars, within par + 2 earns 2, and anything slower earns 1. The best move count and the most stars per level are kept.
 
-**Assists.** Undo (unlimited), Restart and Hint are always free and never affect stars. Hint runs a breadth-first search from the current position (capped at 80,000 states). It highlights the next roll on the arrow buttons, draws a pulsing arrow beside the ball and shows "Try rolling …". If no finish exists from the current position, it says so and suggests Undo or Restart.
+**Assists.** Undo (unlimited), Restart and Hint are always free and never affect stars. Hint runs a breadth-first search from the current position (capped at 80,000 states; a few milliseconds even natively). It highlights the next roll on the arrow buttons, draws a pulsing arrow beside the ball and shows "Try rolling …" in the tip card. If no finish exists from the current position, it says so and suggests Undo or Restart.
 
 ## Levels
 
-There are 60 levels in `data/levels.json`, grouped into four worlds of 15: Studio, Gallery, Workshop and Atelier. Each world has its own paint and wall palette. Levels unlock one at a time: a level opens when the one before it is finished.
+There are 60 levels in `data/levels.json`, grouped into four worlds of 15: Studio, Gallery, Workshop and Atelier. Each world has its own paint, wall and page colours. Levels unlock one at a time: a level opens when the one before it is finished.
 
 - The first three Studio levels are hand-authored teaching levels: a single corridor, an L-bend, and a ring.
-- The other 57 are made by `tools/generate-levels.mjs`, a seeded, deterministic generator. It carves corridors with random rolls, rejects boards with open 2×2 areas above a per-world limit, and solves each candidate by BFS. The optimal solution length becomes the par, and the solution is stored with the level.
+- The other 57 are made by `tools/generate-levels.mjs` (`npm run levels`), a seeded, deterministic generator. It carves corridors with random rolls, rejects boards with open 2×2 areas above a per-world limit, and solves each candidate by BFS. The optimal solution length becomes the par, and the solution is stored with the level.
 - Boards are cropped to one wall tile around the floor, so the largest board is 11×13.
 - Par ranges per world: Studio 1–6, Gallery 6–10, Workshop 9–14, Atelier 12–18. Within a world, levels are ordered easiest to hardest.
 
-## Screens and controls
+## Screens
 
-- **Title:** Play (reads "Continue" once there is progress), Levels, How to play, Settings, and the total star count. When hosted, it also shows "Hi, {nickname}" and **Invite a friend**; on `*.starhermit.com` without a token it shows **Sign in with StarHermit**. Play resumes the level in progress, or opens the first unfinished level.
-- **Levels:** one section per world showing its star total, in a centred column at most 68 rem wide (fifteen buttons per row on desktop). Each level button shows its stars and marks the current level; locked levels show a lock and are disabled.
-- **Game:** a top bar with Levels (☰), a "World · n" title and Settings (⚙), and a HUD with Moves, Par, Left and the star rating so far. Below that are the board and the controls: four arrow buttons (arrows toward walls are disabled), Undo, Restart and Hint.
-  - Phones in portrait: the controls sit in a thumb row under the board.
-  - Wide desktops and phones in landscape: the controls form a column to the right of the board, with the arrows in a cross.
-  - Large screens (above 1600×1000): `ui-scale.js` sets `--ui-scale` (`min(w/1600, h/1000)`, capped at 2.5) and the whole page is CSS-`zoom`ed by it (dvh/vw lengths divided by it); the board's tile-size cap and padding grow by the same factor, so the layout matches a 1600×1000 window magnified.
-- **Input:** the on-screen arrows, the arrow keys or W A S D, and a swipe on the board (at least 24 px). Tapping a tile in the same row or column as the ball rolls toward it. U or Z undoes, R restarts, H shows a hint, and Esc closes a dialog or goes back a screen. Keys are matched by `KeyboardEvent.code`; on StarHermit the player's rebinds apply, and How to play lists the effective keys.
-  - Each roll updates the game state immediately and its animation is queued, so fast input is never lost.
-  - Undo, Restart and Hint are disabled while an animation is playing.
-- **Instructions:** levels 1–3 show a tip card explaining how rolling works, painting, and planning for par. The first Gallery level has a tip about bigger mazes and Hint. "How to play" is available from the title screen.
-- **Finish:** the paint ripples across the board with confetti, then a dialog shows the stars and "{moves} moves · par {par}" (plus the leaderboard line when signed in), with Replay, Levels and Next level. Focus starts on Next level, so Enter continues.
-  - The last level of a world says "{World} complete!".
-  - The last level of the game says that every maze is painted.
-  - Beating an earlier result says "New best!".
+- **Title:** the four-square logo (squares pop in turn), Play (reads "Continue" once there is progress), Levels, How to play, Settings, and the total star count. Signed in, it greets "Hi, {nickname}" and offers **Invite a friend**; signed out it offers **Sign in with StarHermit**. Play resumes the level in progress, or opens the first unfinished level. Settings opens the runtime's Options.
+- **Levels:** a top bar (Back, "Levels", a ★ total pill), then one section per world with its star total, in a centred column at most 1088 px wide (fifteen buttons per row on desktop, `repeat(auto-fill, minmax(64px, 1fr))` elsewhere), scrolling when taller than the window. Each button shows the level number and its stars (in the world's accent), done levels have an accent border, the current level is filled with the accent and takes focus; locked levels show 🔒 and are disabled, a locked world is dimmed.
+- **Game:** a top bar with Levels (☰), a "World · n" title and Settings (⚙, the runtime's Options), a HUD with Moves, Par, Left and the star rating so far, an optional tip card (accent edge), the board and the controls: four arrow buttons (arrows toward walls are disabled; the hinted one shows filled), Undo, Restart and Hint (disabled while a roll animates).
+  - Portrait: the arrows in a thumb row under the board, the tools under them.
+  - Wide windows (≥ 900 × 560 logical px): the controls in a 260 px column right of the board, the arrows in a cross, the tools stacked.
+  - Landscape phones (≤ 559 px tall): a 220 px column with a smaller cross, tools wrapping; the title drops the logo.
+  - The runtime's interface size and text size scale the whole layout (replacing the browser build's `ui-scale.js`).
+- **Instructions:** levels 1–3 show a tip card explaining rolling, painting and par; the first Gallery level has a tip about bigger mazes and Hint. "How to play" (title) lists the rules and the effective keys from the player's bindings; it closes with Close, Esc or a press outside it.
+- **Finish:** the paint ripples across the board with confetti, then (0.75 s later, 0.15 s with reduced motion) a card shows the stars and "{moves} moves · par {par}" (plus "New best!" when an earlier result was beaten, and the leaderboard line when signed in), with Replay, Levels and Next level. Focus starts on Next level (Replay on the last level), so Enter continues.
+  - The last level of a world says "{World} complete!"; the last level of the game says every maze is painted.
+- A sync pill (Saving… / Saved to cloud / Cloud save failed) shows while signed in; a toast confirms invites and a sign-out.
+
+## Controls
+
+| Action | Keys (rebindable) | Gamepad | Pointer / touch |
+|---|---|---|---|
+| Roll up / down / left / right | ↑ W / ↓ S / ← A / → D | D-pad or left stick | the arrow buttons; a swipe on the board (≥ 24 px); a tap on a tile in the ball's row or column rolls toward it |
+| Undo | U, Z | West | Undo |
+| Restart | R | Select | Restart |
+| Hint | H | North | Hint |
+| Back / close | Esc | East, Start | ☰, ← and Close buttons |
+
+Action names in `starhermit.txt` are lowercase (`roll_up` …); rebinds made in the browser build (`rollUp` …) do not carry over. On the game screen the roll keys always roll (they take the arrows back from a focused button, as the browser build's document handler did); Tab, Enter and the D-pad navigate the buttons elsewhere. Each roll updates the game state at once and its animation is queued, so fast input is never lost. F1 opens the runtime's Options.
 
 ## Presentation
 
-The board is drawn on a Canvas 2D element. Its static layer (a raised slab, carved corridors with inner-edge shading, tile seams and a drop shadow) is cached and rebuilt only on resize or a quality change. Each frame draws the paint, the ball, the hint arrow and the particles on top, and the canvas only redraws while something is moving.
+The board is drawn as the browser build's Canvas 2D renderer drew it: the static layer (a raised slab with a soft drop shadow, corridors carved into it with inner-edge shading, tile seams) is painted with the same canvas code into a `starhermit:canvas` OffscreenCanvas once per level, window size or quality, and drawn as one image. Each frame draws the paint (tiles spreading from their centres over 220 ms), the drifting paint haze, the finish wave, the hint arrow, droplets and confetti and the ball with `starhermit:draw` primitives; the ball (radial gradient, rim, highlight, the glow halo) is a sprite painted once per tile size and squashed or stretched as it rolls. Animations run on the frame clock.
 
-- **Rolling:** the ball eases along its path with squash and stretch, taking 110 ms + 55 ms per tile (capped at 520 ms).
-- **Painting:** tiles paint as the ball's centre reaches them, spreading from the tile centre over 220 ms. The ball settles with a small bounce, and droplets splash on landing.
-- **Reduced motion:** follows the `prefers-reduced-motion` setting unless changed in Settings. It shortens rolls to 90 ms and removes the bump, particles and ambient motion.
+- **Rolling:** 110 ms + 55 ms per tile (capped at 520 ms), eased, with squash and stretch; the ball settles with a small bounce and droplets splash on landing.
+- **Reduced motion** (the runtime's accessibility option): rolls take 90 ms and the bump, particles, haze and logo pop are off.
+- **Graphics** follow the runtime's quality tier (`frame().quality`, `native/quality.ts`), as the browser build's presets did; counts grow up to 2× with the level index within a tier:
 
-**Graphics** (Settings → Graphics tab):
-
-- **Quality:** Auto, Low, Balanced, High or Ultra.
-  - Auto is chosen from the StarHermit hardware level (see below): Low from level 0, Balanced from 4, High from 10, Ultra from 17.
-  - Choosing a preset clears the per-effect overrides.
-- **Render scale:** 50–200 %. The pixel-ratio cap per preset is 1 / 1.5 / 2 / 3, and Ultra renders at ×1.25.
-- **Per-effect overrides**, each defaulting to "From preset (…)":
-  - Shadows (slab shadow, wall shading, ball shadow)
-  - Paint glow (ball halo and paint sheen)
-  - Particles (off, or 30 % / all of the preset's particle budget)
-  - Ambient motion (drifting paint haze)
-- **Adaptive resolution:** averages 90 frames; above 26 ms it steps down by 0.1 to 60 %, and below 14 ms it steps back up by 0.05.
-- **Show frame rate:** a readout in the board's corner.
-- A summary line "GPU · Level N · effects · W×H px" shows the GPU name, its hardware level ("Level" localized), the active effects and the render size in pixels.
-- Changes apply immediately and persist. `body[data-gfx-preset]` exposes the active preset.
-- Settled paint is cached in an offscreen layer (next to the cached static board), so a frame only draws tiles still spreading, the ball, hint, particles and the finish wave — on every preset.
-
-**Hardware-level detection.** `src/gpu-level.js` (shared StarHermit copy, `window.StarHermitGpu`, a classic script loaded before `src/main.js`, never edited here) rates the WebGL unmasked renderer plus device facts (`detectSystem()`: phone/tablet, cores, memory, screen) on the StarHermit hardware level 0–20 (0 = Galaxy S20 / Intel UHD or weaker, every software renderer and no hardware WebGL; 20 = RTX 5090; each level ≈ 1.23×; laptop parts two levels below desktop; phones, tablets and ≤ 4 GB machines capped at 9). `src/gfx.js` maps it with `presetForLevel(level, { low: 0, balanced: 4, high: 10, ultra: 17 })`, so Auto picks Ultra on strong GPUs; adaptive resolution still steps down when slow. Headless SwiftShader is level 0 → Low. Phones and tablets pace Auto FPS at half the display refresh rate ("Auto (half refresh rate)") and start at 16 simultaneous sounds (shared `game-options.js`).
-
-**Per-preset budgets** (`BUDGETS` / `budgetFor` / `particleCap` in `src/gfx.js`). Each preset holds 60 FPS on the weakest GPU Auto gives it — Low at level 0, Balanced 4, High 10, Ultra 17. Board, tiles, controls and rules are identical on every preset; only visuals change. Counts are tuned at the floor level and scale up within the preset on faster GPUs (`StarHermitGpu.scaleBudget`, ≤ 2×, at most 720 particles).
-
-| Budget | Low | Balanced | High | Ultra |
+| | Low | Balanced | High | Ultra |
 |---|---|---|---|---|
-| Particle cap at Particles high (low: 30 %) | 80 | 120 | 220 | 360 |
-| Level-complete confetti at Particles high (low: 40 %) | 40 | 60 | 90 | 140 |
-| Drifting haze blobs (Ambient on) | 3 | 4 | 7 | 10 |
-| Canvas pixel-ratio cap / scale | 1 | 1.5 | 2 | 3 × 1.25 |
-| Per-frame `shadowBlur` ball halo (Glow) | off | off | on | on |
+| Slab shadow, deeper wall shading, ball shadow | off | on | on | on |
+| Ball halo and paint sheen | off | off | on | on |
+| Particles (cap) | off | 30 % of 120 | 220 | 360 |
+| Finish confetti | off | 40 % of 60 | 90 | 140 |
+| Haze blobs | off | 4 | 7 | 10 |
 
-**Benchmark** (`node tools/gfx-bench.mjs paint-maze`; hook `tests/gfx-bench.mjs` picks the preset in Settings → Graphics, presses Play and keeps rolling with the on-screen direction buttons, restarting every dozen rolls and going Next after a finished level). A 2D canvas: the gate is CPU time per frame. Measured 2026-10-17 (GPU ms above the draws-skipped floor, projected to the preset's floor level; CPU p90 on the RTX 5090 run):
+The runtime's Options own what the old Settings › Graphics tab did (Auto by hardware level, render scale and pixel-ratio cap, adaptive resolution, frame-rate limit and readout); the old per-effect overrides are not offered.
 
-- Desktop 1920×1080: PASS low (typical 0.00 / slow 0.00 ms GPU, CPU 0.40 ms); PASS balanced (0.00 / 0.00, CPU 0.40); PASS high (0.00 / 0.05, CPU 0.50); PASS ultra (0.00 / 0.00, CPU 0.50).
-- Mobile 390×844 @3×: PASS low (0.00 / 0.23, CPU 0.30); PASS balanced (0.00 / 0.14, CPU 0.40).
+**Audio.** Short authored samples (`sfx/`, listed in `sfx/manifest.txt`) play on the runtime's effects bus: roll, landing (splat when new tiles were painted, otherwise stop), bump, undo, hint, level complete, three stars (0.35 s after), world complete and game complete. Volumes, mute and the voice limit are the runtime's Options › Audio. Clips load one at a time once the mixer runs (in browsers after the first press); a sample still loading is silent.
 
-**Audio.** Short authored samples play through Web Audio, which starts on the first gesture. The sounds are listed in `sfx/manifest.txt`: roll, landing (splat when new tiles were painted, otherwise stop), bump, undo, hint, level complete, three stars, world complete, and game complete. Volume is set in Settings. Missing or undecodable audio is skipped.
+## Persistence and StarHermit integration
 
-## Settings and persistence
-
-Settings → General has the language (all nine locales), sound volume and Reduce motion.
-
-Progress is saved in `localStorage` (`paint-maze:v2`):
-
-- per-level best moves and stars
-- the level in progress, stored as its roll string and replayed on resume, so undo history survives a reload
-- settings
-
-## Localization
-
-All UI text comes from `src/i18n.js` in en-US, en-GB, es-419, es-ES, de-DE, fr-FR, fr-CA, pt-BR and it-IT.
-
-- **Language setting:** Settings → General → **Language** lists **Automatic — <resolved language>** and the nine locales by native name, with a status line (Saved to account / Saved on this device / Account sync unavailable). It is bound to `sh-language.js` (`GameLanguage.bindSelect`), so the shared options panel shows no second selector. An older explicit locale choice migrates once.
-- **Resolution:** explicit choice → for Automatic, the StarHermit account's `preferredLanguage` (`GET /api/v1/me/language`, signed in only) → the browser's languages → en-US, matching tags to the nearest shipped locale (es-MX → es-419, fr-BE → fr-FR, en-AU → en-GB, pt-PT → pt-BR). The choice is stored per player in `localStorage['paint-maze.language.<user|guest>']` and, when signed in, in the per-player settings key `ui.language` as `{ choice }`; a failed settings read never overwrites it and the game never writes the platform preference. Standalone play makes no language request. `?lang=<tag>` forces a locale for the page load (QA links) and hides the selector.
-- **Live switching:** a change applies at once — `<html lang>`, every `data-i18n` label, the HUD, level title, tip, key list, Graphics panel, sync pill, greeting and an open finish dialog (with its leaderboard line) re-render in place; the level in progress is untouched.
-- `tests/i18n.test.mjs` checks that every key used in markup and code exists in all nine locales with matching placeholders.
-
-## StarHermit integration
-
-All platform traffic goes through the shared SDK `starhermit-sdk.js` (an unmodified copy of the canonical client, loaded before `src/main.js` as `window.StarHermit`); `src/platform.js` adapts it. `starhermit.txt` declares `name`, `description`, `launch`, `owner`, `server=score-script.js`, `cover` and one `control.<action>=<codes> | <label>` line per keyboard action.
-
-- **Launch token:** `StarHermit.init()` reads `#game_token=` (library launch) or `#access_token=` (direct sign-in return) once and strips it; the slug is the `game_scope` claim. The SDK renews the token before expiry. If renewal is refused the greeting hides, a "signed out — playing locally" toast shows, sign-in is re-offered and play continues locally.
-- **Sign-in:** on `*.starhermit.com` without a token the title shows **Sign in with StarHermit** (`StarHermit.signIn()`); hidden when signed in and when running locally.
-- **Identity:** the profile nickname (fallback a localized "Player <id prefix>") is shown on the title screen.
-- **Cloud save:** progress, the level in progress and tips seen are mirrored to the `game:<slug>` slot through `StarHermit.loadJSON` / `writeSave`, so every write after the launch load is conditional on the version it saw. Saves are debounced by 2 s and flushed on `pagehide` or when the page is hidden. A pill shows Saving… / Saved to cloud / an error.
-- **Merging:** on launch, the remote document is merged in (`mergeRemote`): the fewest moves and most stars per level win, tips seen are unioned, and this device's level in progress is kept (the remote one is used only when there is none); the merged document is written back when it differs. When another device saved first, the SDK refuses the write and emits `saveconflict`: the game re-reads the slot, applies the same merge and saves again, so neither side's progress is lost.
-- **Report a problem:** Settings → Graphics → **Report a problem** (signed in only, from the shared `game-options.js`) files a bug report through `StarHermit.reportBug` with a small non-personal `context.json` (viewport, language, FPS cap, audio limit); uncaught errors are filed as crash reports through `StarHermit.captureCrashes` (SDK-capped).
-- **Settings KV:** volume, Reduce motion and the graphics settings are patched to the per-player settings store on change and applied at boot (the account value wins).
-- **Controls:** keyboard input routes through `StarHermit.loadBindings()` (platform rebinds over the `control.*` defaults).
-- **Invite:** **Invite a friend** copies `StarHermit.inviteLink()` to the clipboard and confirms with a toast.
-- **Leaderboard:** after every finished level, a signed-in player's total star count (all levels) is posted through `StarHermit.submitScores` to the `total-stars` board (integer, higher is better, 0–180). The platform script `score-script.js` (canonical copy in the games repo's `tools/score-script.js`) accepts it on a practice session, range-checks it and posts it. The finish dialog shows "Leaderboard rank: #N" (or posted / not posted) under the move count.
-- **Offline:** without a token, the game runs entirely offline, makes no request and shows no leaderboard line.
+- **Save:** the progress document `{ v: 2, progress: { levelId: { best, stars } }, current: { id, dirs } | null, tutorialSeen }` (`src/storage.js`) is the engine save (`starhermit:storage` `saves`, schema 2): on the device and, signed in, in the account's cloud slot. The level in progress is stored as its roll string and replayed on resume, so undo history survives. A conflict between devices merges (fewest moves and most stars per level win, tips seen are unioned, this device's level in progress is kept).
+- **Migration:** the browser build's cloud save (`game:<slug>`, the same document written by the JS SDK) shows as a foreign save; it is merged in and replaced once (`replaceForeign`). Guests' old browser `localStorage` progress does not migrate. The browser build's account settings keys (`volume`, `reducedMotion`, `gfx`, `ui.language`) are removed; the runtime's Options own them now.
+- **Language:** all text comes from `src/i18n.js` in en-US, en-GB, es-419, es-ES, de-DE, fr-FR, fr-CA, pt-BR and it-IT, in the runtime's interface language (Options › Language, else the account's or device's), matched to the nearest shipped locale (es-MX → es-419, fr-BE → fr-FR, en-AU → en-GB, pt-PT → pt-BR). A change applies on the next frame; the level in progress is untouched.
+- **Leaderboard:** after every finished level, a signed-in player's total star count is posted through the platform script `score-script.js` (`server=`; a practice session whose socket carries `{ type: 'result', scores: { 'total-stars': n } }`) to the `total-stars` board (integer, higher is better, 0–180). The script range-checks the client's total (the user's decision for solo boards; no server-side replay check). The finish card shows "Leaderboard rank: #N" (or posted / not posted).
+- **Invite:** **Invite a friend** copies the platform's invite link to the clipboard and confirms with a toast.
+- **Offline / guest:** the game runs fully offline; no leaderboard line is shown.
 
 Matchmaking, chat, achievements and replays are not used.
 
@@ -122,36 +81,30 @@ Matchmaking, chat, achievements and replays are not used.
 
 | Path | Contents |
 |---|---|
-| `index.html`, `styles.css` | Page and layout |
-| `src/rules.js` | Pure rules: parsing, rolls, legality, BFS solver, stars, replay, snapshots |
-| `src/render.js` | Canvas renderer and palettes |
-| `src/main.js` | Screens, input, level flow, settings, persistence wiring |
-| `src/gpu-level.js` | Shared StarHermit hardware-level module (`window.StarHermitGpu`), copied from the platform tools, never edited here |
-| `src/gfx.js` | Pure graphics-quality model: presets, hardware-level detection (`detectLevel`, `presetForLevel`, `detectTier`), per-preset `BUDGETS` / `budgetFor` / `particleCap` |
-| `src/i18n.js`, `src/storage.js`, `src/audio.js`, `src/platform.js` | Strings, profile/cloud doc, sound, StarHermit adapter |
-| `score-script.js` | StarHermit platform script (`server=`): range-checks the posted total stars and posts them to the `total-stars` board |
-| `data/levels.json` | The 60 levels, with par and optimal solution |
-| `tools/generate-levels.mjs`, `tools/serve.mjs` | Level generator, dev static server (`npm start`) |
-| `tests/` | Unit tests, `e2e.mjs`, `hosted.mjs`, `gfx-bench.mjs` (dev-only hook for the platform's `tools/gfx-bench.mjs`) |
+| `starhermit.txt` | Manifest: entry, engine pin, capabilities (`platform,storage,clipboard`), controls and gamepad defaults |
+| `native/main.ts` | Entry: level flow, input (actions, swipes, taps), lifecycle |
+| `native/screens.ts` | Title, levels, game layouts, cards, sync pill, toast |
+| `native/render.ts` | Board renderer (canvas static layer + draw primitives) and palettes |
+| `native/platform.ts` | Save, foreign-save migration, legacy settings cleanup, player, invite, leaderboard post |
+| `native/audio.ts`, `native/quality.ts`, `native/style.ts`, `native/i18n.ts`, `native/game.ts` | Sound, quality tiers, UI styles and world tokens, locale wiring, typed facade over `src/` |
+| `src/rules.js`, `src/storage.js`, `src/i18n.js` | Pure rules and BFS solver, progress document and merge, strings (shared with tests) |
+| `data/levels.json` | The 60 levels with par and optimal solution |
+| `tools/ui-style.css` → `assets/ui-style.json` | Class-based style sheet (`npm run css`) |
+| `score-script.js` | Platform script posting `total-stars` |
+| `index.html`, `starhermit-files.json` | The web loader and file index written by `npm run package` (never edited by hand) |
 
-## Tests
+## Checks
 
-- `npm test` runs the unit tests:
-  - rules and solver
-  - every level is enclosed, its stored solution completes it, and its par equals the BFS optimum
-  - the difficulty ramp and phone-sized boards
-  - the graphics model (hardware level → preset: no WebGL/SwiftShader/llvmpipe, AMD Radeon Graphics and Intel UHD → Low, Iris Xe → Balanced, GTX 1070 → High, RTX 4080/5090 → Ultra, phones such as Adreno 740 capped at Balanced; the per-preset budget table)
-  - storage and cloud merge
-  - every locale has every key with matching placeholders, and every key used in markup and code exists
-  - the platform adapter: ETag-conditional cloud save, a 412 conflict that re-reads, merges and saves, sign-in on a UUID host, no requests standalone
-- `npm run test:e2e` drives the visible UI in Chrome at 1280×800, 390×844 (touch) and 844×390 (touch). It solves levels with the on-screen arrows, keys, swipe and tile taps, and exercises How to play, Undo, Hint, Restart, resume after reload, level select state, and the language and graphics settings with persistence. At 1280×800 and 390×844 it ends with a language step against a stubbed StarHermit API: the account's preferred fr-CA makes Automatic resolve to French (Canada); choosing Deutsch mid-level re-renders the settings, HUD and tip in place without resetting the level, PUTs `ui.language`, and Report a problem posts to `/reports`. It fails on any console error or warning, failed request, or control outside the viewport.
-- `npm run test:hosted` checks the StarHermit flow (token strip, nickname, `game:<slug>` cloud save, restore) against a fake API.
+- `npm test` = `npm run test:unit` (rules and solver; every level enclosed, its stored solution completes it, par equals the BFS optimum, difficulty ramp and phone-sized boards; progress document, foreign-save migration and merges; every locale has every key the client uses with matching placeholders and no unused rows) + `npm run test:native` (`tests/native.mjs`: web index up to date, `tsc`, `starhermit check .` with no warnings, and every `tests/native/*.play` as a guest render check):
+  - `menus.play` (desktop): How to play, Options, the level list, keys (blocked roll, Hint, Esc navigation, Continue, U, R), Enter on the finish card.
+  - `journey.play` (generated by `npm run plays`): all 60 levels solved in par with the keys, ending at 180 / 180 stars.
+  - `phone.play` (390×844 @3): tile tap, swipe, arrows, Undo, Hint, Restart by touch.
+  - `landscape.play` (844×390 @3): the side-column layout by touch.
+- `npm run test:browser` (`tools/browser-play.mjs`): the packaged loader in Chrome on the GPU at 1366×768, 390×844 @3 and 844×390 @3 — keys, swipes (CDP touch), buttons, Hint, Undo, the finish cards and the level list — failing on console errors or warnings. `~/games/tools/engine-web-smoke.mjs` checks start-up at desktop and phone sizes.
+- Signed-in paths (cloud merge, foreign save, legacy settings, leaderboard post) are covered by the unit tests of their logic; they are not live-tested here.
 
-## Browser interference
+## Known limitations
 
-`browser-guard.js` (loaded from `index.html`) suppresses browser UI that gets in the way of play: the right-click context menu, the iOS long-press callout, copy / cut / paste, and page text selection. Text fields (inputs, textareas, selects, contenteditable) keep normal selection, context menu and clipboard behaviour.
-
-
-## Sound and frame-rate options
-
-The options panel includes Sound controls for master, music, effects and UI volume, a mute that preserves volume levels, and an Auto or manual concurrent-sound limit (1–64). Changes apply immediately with perceptual volume curves. A shared allocator bounds Web Audio and media playback, including loops and scheduled sources. Graphics includes Auto display refresh or a custom maximum frame rate from 1–1000 FPS; rendering is paced independently of simulation and input. Preferences persist locally, with FPS stored per detected GPU, and reconcile with Starhermit settings when signed in. The controls support keyboard and touch input and the supported English, Spanish, German, French, Portuguese and Italian locales.
+- Rebinds made in the browser build do not carry over (actions were renamed to lowercase).
+- Guests' browser-only progress (`localStorage`) does not migrate; signed-in cloud saves do.
+- The finish and how-to cards are placed panels, not modal dialogs: arrow keys can move focus to the (dimmed) buttons behind them, as Tab could in the browser build.
