@@ -1,7 +1,7 @@
 # Paint Maze — Specification
 
 **Status:** running spec, describing the game as it ships today.
-**Genre:** coverage puzzle · **Players:** 1 · **Platforms:** the StarHermit engine (engine 1.29.0, `engine.minor=31`): natively in the StarHermit client and in browsers through the engine's web runtime; desktop and phones, portrait and landscape.
+**Genre:** coverage puzzle · **Players:** 1 · **Platforms:** the StarHermit engine (engine 1.30.0, `engine.minor=32`): natively in the StarHermit client and in browsers through the engine's web runtime; desktop and phones, portrait and landscape.
 
 ## Game
 
