@@ -1,0 +1,22 @@
+# Studio levels 1 and 2 solved through the real UI, with the level-complete burst, for the graphics-level bench (engine-tier-bench.mjs).
+# viewport 1280x800@1
+until 300 =Play
+frames 150
+click =Play
+until 120 =Studio · 1
+frames 120
+measure start
+key ArrowRight 1
+frames 1
+until 900 =Painted!
+frames 180
+click =Next level
+until 120 =Studio · 2
+frames 30
+key ArrowRight 1
+frames 1
+key ArrowDown 1
+frames 1
+until 900 =Painted!
+frames 300
+measure stop

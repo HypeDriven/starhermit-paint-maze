@@ -8,7 +8,7 @@
 // the screens' state (title, levels, game, the finish and how-to cards) and
 // input: the roll keys and pad, swipes and taps on the board, and every button.
 import "./i18n.ts";
-import { clipboard, files, frame, onPreferencesChange, onQuit, onRender, onStart, onSuspend, onUpdate, preferences } from "starhermit:engine";
+import { clipboard, files, frame, levelSettings, onPreferencesChange, onQuit, onRender, onStart, onSuspend, onUpdate, preferences } from "starhermit:engine";
 import { onAction, onPointerButton, onTouch } from "starhermit:input";
 import * as ui from "starhermit:ui";
 import { onSessionEnded, requestSignIn } from "starhermit:platform";
@@ -345,10 +345,10 @@ function pointerInput(): void {
 let lookKey = "";
 function applyLook(): void {
   const f = frame();
-  const k = `${f.quality}:${f.levelIndex}`;
+  const k = f.level;
   if (k === lookKey) return;
   lookKey = k;
-  render.setLook(lookFor(f.quality, f.levelIndex));
+  render.setLook(lookFor(levelSettings(f.level)));
 }
 
 onStart(() => {
@@ -358,6 +358,7 @@ onStart(() => {
   game.levels = data.levels;
   game.worlds = data.worlds;
   render.setReducedMotion(preferences().reducedMotion);
+  audio.loadSfx();
   applyLook();
   goTo("title");
 });
@@ -369,7 +370,6 @@ onQuit(() => platform.flush());
 onUpdate(() => {
   applyLook();
   applyWorld(game.world, ui.preferences().highContrast);
-  audio.update();
   render.update();
   const time = now();
   if (app.toast && app.toast.until < time) app.toast = null;

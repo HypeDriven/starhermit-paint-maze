@@ -52,7 +52,7 @@ The board is drawn as the browser build's Canvas 2D renderer drew it: the static
 
 - **Rolling:** 110 ms + 55 ms per tile (capped at 520 ms), eased, with squash and stretch; the ball settles with a small bounce and droplets splash on landing.
 - **Reduced motion** (the runtime's accessibility option): rolls take 90 ms and the bump, particles, haze and logo pop are off.
-- **Graphics** follow the runtime's quality tier (`frame().quality`, `native/quality.ts`), as the browser build's presets did; counts grow up to 2× with the level index within a tier:
+- **Graphics** follow the runtime's quality tier (`frame().quality`, `native/quality.ts`), as the browser build's presets did; counts grow up to 2× with the level's particle budget within a tier:
 
 | | Low | Balanced | High | Ultra |
 |---|---|---|---|---|
@@ -64,7 +64,7 @@ The board is drawn as the browser build's Canvas 2D renderer drew it: the static
 
 The runtime's Options own what the old Settings › Graphics tab did (Auto by hardware level, render scale and pixel-ratio cap, adaptive resolution, frame-rate limit and readout); the old per-effect overrides are not offered.
 
-**Audio.** Short authored samples (`sfx/`, listed in `sfx/manifest.txt`) play on the runtime's effects bus: roll, landing (splat when new tiles were painted, otherwise stop), bump, undo, hint, level complete, three stars (0.35 s after), world complete and game complete. Volumes, mute and the voice limit are the runtime's Options › Audio. Clips load one at a time once the mixer runs (in browsers after the first press); a sample still loading is silent.
+**Audio.** Short authored samples (`sfx/`, listed in `sfx/manifest.txt`) play on the runtime's effects bus: roll, landing (splat when new tiles were painted, otherwise stop), bump, undo, hint, level complete, three stars (0.35 s after), world complete and game complete. Volumes, mute and the voice limit are the runtime's Options › Audio. Every clip loads at start; a sample still loading is silent.
 
 ## Persistence and StarHermit integration
 

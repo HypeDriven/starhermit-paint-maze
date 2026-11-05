@@ -3,10 +3,9 @@
 // "effects" bus (Options › Audio owns the volumes, the mute and the voice
 // limit: the old Settings › Sound volume and the shared options panel). The
 // browser build's master gain (0.7 by default) is folded into each sound's
-// gain. Clips load once the mixer runs (natively at once, in a browser after
-// the first press), one at a time; a sample still loading is silent, as an
+// gain. Every clip loads at start; a sample still loading is silent, as an
 // undecoded one was.
-import { context, loadClip, play as playClip, type AudioClip } from "starhermit:audio";
+import { loadClip, play as playClip, type AudioClip } from "starhermit:audio";
 
 /** audio.js SFX. */
 export const SFX: Record<string, string> = {
@@ -16,18 +15,15 @@ export const SFX: Record<string, string> = {
 const MASTER = 0.7;
 
 const clips = new Map<string, AudioClip>();
-const queue = Object.values(SFX);
-let loading = false;
 
-/** Each frame: the next clip once the mixer runs. */
-export function update(): void {
-  if (loading || !queue.length || context.state !== "running") return;
-  const name = queue.shift()!;
-  loading = true;
-  loadClip(`sfx/${name}.opus`).then(
-    (c) => { clips.set(name, c); loading = false; },
-    (e: unknown) => { console.warn(`sfx ${name}: ${e instanceof Error ? e.message : String(e)}`); loading = false; },
-  );
+/** Loads every clip at once (onStart). */
+export function loadSfx(): void {
+  for (const name of new Set(Object.values(SFX))) {
+    loadClip(`sfx/${name}.opus`).then(
+      (c) => { clips.set(name, c); },
+      (e: unknown) => { console.warn(`sfx ${name}: ${e instanceof Error ? e.message : String(e)}`); },
+    );
+  }
 }
 
 /** audio.js play(event, { rate, gain }). */
