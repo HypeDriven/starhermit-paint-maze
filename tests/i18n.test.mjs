@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { STRINGS, LOCALES, matchLocale, setLocale, t } from '../src/i18n.js';
+import { readFileSync } from 'node:fs';
+
+const STRINGS = JSON.parse(readFileSync(new URL('../assets/strings.json', import.meta.url), 'utf8'));
+const LOCALES = Object.keys(STRINGS);
 
 test('every locale defines every key with the same placeholders', () => {
   const en = STRINGS['en-US'];
@@ -13,20 +16,9 @@ test('every locale defines every key with the same placeholders', () => {
   }
 });
 
-test('matchLocale maps browser tags to supported locales', () => {
-  assert.equal(matchLocale('es-MX'), 'es-419');
-  assert.equal(matchLocale('es-ES'), 'es-ES');
-  assert.equal(matchLocale('fr-CA'), 'fr-CA');
-  assert.equal(matchLocale('fr-BE'), 'fr-FR');
-  assert.equal(matchLocale('en-AU'), 'en-GB');
-  assert.equal(matchLocale('pt-PT'), 'pt-BR');
-  assert.equal(matchLocale('ja-JP'), 'en-US');
-});
-
-test('t fills placeholders', () => {
-  setLocale('de-DE');
-  assert.equal(t('completeSub', { moves: 4, par: 3 }), '4 Züge · Par 3');
-  setLocale('en-US');
+test('the tables translate', () => {
+  assert.equal(STRINGS['de-DE'].completeSub, '{moves} Züge · Par {par}');
+  assert.equal(LOCALES.length, 9);
 });
 
 test('every key the engine client uses exists in all nine locales, and no table row is unused', async () => {
@@ -41,7 +33,7 @@ test('every key the engine client uses exists in all nine locales, and no table 
   for (const d of ['U', 'D', 'L', 'R']) keys.add('dir.' + d);
   for (const w of ['studio', 'gallery', 'workshop', 'atelier']) keys.add('world.' + w);
   for (const k of ['moves', 'par', 'left', 'tut1', 'tut2', 'tut3', 'tutWorld', 'play', 'continue', 'syncSaving', 'syncSynced', 'syncError']) keys.add(k);
-  assert.ok(keys.size > 50, `only ${keys.size} keys`);
+  assert.ok(keys.size > 40, `only ${keys.size} keys`);
   for (const loc of LOCALES) {
     const missing = [...keys].filter((k) => typeof STRINGS[loc][k] !== 'string');
     assert.deepEqual(missing, [], `${loc} missing keys`);

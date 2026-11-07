@@ -70,7 +70,7 @@ The runtime's Options own what the old Settings › Graphics tab did (Auto by ha
 
 - **Save:** the progress document `{ v: 2, progress: { levelId: { best, stars } }, current: { id, dirs } | null, tutorialSeen }` (`src/storage.js`) is the engine save (`starhermit:storage` `saves`, schema 2): on the device and, signed in, in the account's cloud slot. The level in progress is stored as its roll string and replayed on resume, so undo history survives. A conflict between devices merges (fewest moves and most stars per level win, tips seen are unioned, this device's level in progress is kept).
 - **Migration:** the browser build's cloud save (`game:<slug>`, the same document written by the JS SDK) shows as a foreign save; it is merged in and replaced once (`replaceForeign`). Guests' old browser `localStorage` progress does not migrate. The browser build's account settings keys (`volume`, `reducedMotion`, `gfx`, `ui.language`) are removed; the runtime's Options own them now.
-- **Language:** all text comes from `src/i18n.js` in en-US, en-GB, es-419, es-ES, de-DE, fr-FR, fr-CA, pt-BR and it-IT, in the runtime's interface language (Options › Language, else the account's or device's), matched to the nearest shipped locale (es-MX → es-419, fr-BE → fr-FR, en-AU → en-GB, pt-PT → pt-BR). A change applies on the next frame; the level in progress is untouched.
+- **Language:** all text comes from `assets/strings.json` (account lines: the engine's `starhermit.*` keys) in en-US, en-GB, es-419, es-ES, de-DE, fr-FR, fr-CA, pt-BR and it-IT, in the runtime's interface language (Options › Language, else the account's or device's), matched to the nearest shipped locale (es-MX → es-419, fr-BE → fr-FR, en-AU → en-GB, pt-PT → pt-BR). A change applies on the next frame; the level in progress is untouched.
 - **Leaderboard:** after every finished level, a signed-in player's total star count is posted through the platform script `score-script.js` (`server=`; a practice session whose socket carries `{ type: 'result', scores: { 'total-stars': n } }`) to the `total-stars` board (integer, higher is better, 0–180). The script range-checks the client's total (the user's decision for solo boards; no server-side replay check). The finish card shows "Leaderboard rank: #N" (or posted / not posted).
 - **Invite:** **Invite a friend** copies the platform's invite link to the clipboard and confirms with a toast.
 - **Offline / guest:** the game runs fully offline; no leaderboard line is shown.
@@ -83,11 +83,11 @@ Matchmaking, chat, achievements and replays are not used.
 |---|---|
 | `starhermit.txt` | Manifest: entry, engine pin, capabilities (`platform,storage,clipboard`), controls and gamepad defaults |
 | `native/main.ts` | Entry: level flow, input (actions, swipes, taps), lifecycle |
-| `native/screens.ts` | Title, levels, game layouts, cards, sync pill, toast |
+| `native/screens.ts` | Title, levels, game layouts, cards, sync pill |
 | `native/render.ts` | Board renderer (canvas static layer + draw primitives) and palettes |
 | `native/platform.ts` | Save, foreign-save migration, legacy settings cleanup, player, invite, leaderboard post |
 | `native/audio.ts`, `native/quality.ts`, `native/style.ts`, `native/i18n.ts`, `native/game.ts` | Sound, quality tiers, UI styles and world tokens, locale wiring, typed facade over `src/` |
-| `src/rules.js`, `src/storage.js`, `src/i18n.js` | Pure rules and BFS solver, progress document and merge, strings (shared with tests) |
+| `src/rules.js`, `src/storage.js` | Pure rules and BFS solver, progress document and merge (shared with tests) |
 | `data/levels.json` | The 60 levels with par and optimal solution |
 | `tools/ui-style.css` → `assets/ui-style.json` | Class-based style sheet (`npm run css`) |
 | `score-script.js` | Platform script posting `total-stars` |

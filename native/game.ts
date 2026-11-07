@@ -1,9 +1,8 @@
 // Typed facade over the browser build's pure modules (src/rules.js,
-// src/storage.js, src/i18n.js), which the engine client imports unchanged and
+// src/storage.js), which the engine client imports unchanged and
 // the Node tests and tools/generate-levels.mjs share.
 import * as rulesJs from "../src/rules.js";
 import * as storageJs from "../src/storage.js";
-import * as i18nJs from "../src/i18n.js";
 
 export type Dir = "U" | "D" | "L" | "R";
 export interface Level { id: string; world: string; w: number; h: number; rows: string[]; start: [number, number]; par: number; solution: string }
@@ -38,12 +37,4 @@ export const storage = storageJs as unknown as {
   readForeign(text: string | null): Profile | null;
   mergeDocs(local: unknown, remote: unknown): Profile;
   sameDoc(a: unknown, b: unknown): boolean;
-};
-
-export const i18n = i18nJs as unknown as {
-  LOCALES: string[];
-  matchLocale(tag: string): string;
-  setLocale(loc: string): void;
-  getLocale(): string;
-  t(key: string, vars?: Record<string, string | number>): string;
 };

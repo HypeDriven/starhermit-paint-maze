@@ -2,7 +2,7 @@
 // every frame over the page gradient: the title (logo, Play/Continue, Levels,
 // How to play, Settings, sign-in and invite, the star total), the level list
 // (one section per world), the game (top bar, HUD, tip card, the board and the
-// controls), the finish and how-to cards, the sync pill and the toast. The
+// controls), the finish and how-to cards, the sync pill. The
 // browser's media queries are layouts picked by the window's logical size:
 // wide (≥ 900 × 560: the controls in a column at the right, the arrows in a
 // cross), landscape phone (≤ 559 px tall: the same, smaller) and portrait (a
@@ -13,7 +13,7 @@ import { bindings } from "starhermit:input";
 import * as draw from "starhermit:draw";
 import * as ui from "starhermit:ui";
 import { rules, type Dir } from "./game.ts";
-import { t } from "./i18n.ts";
+import { account, t } from "./i18n.ts";
 import * as platform from "./platform.ts";
 import * as render from "./render.ts";
 import { worldColors } from "./style.ts";
@@ -26,12 +26,10 @@ import {
 // ------------------------------------------------------------------ layout and helpers
 interface Layout { lw: number; lh: number; sc: number; ox: number; oy: number; wide: boolean; land: boolean }
 function layoutNow(): Layout {
-  const f = frame();
-  const sc = ui.preferences().scale;
-  const sa = f.safeArea;
-  const lw = Math.max(1, (f.width - sa.left - sa.right) / sc), lh = Math.max(1, (f.height - sa.top - sa.bottom) / sc);
+  const v = ui.viewport!();
+  const lw = Math.max(1, v.width), lh = Math.max(1, v.height), sc = v.scale;
   const land = lw > lh && lh <= 559;
-  return { lw, lh, sc, ox: sa.left, oy: sa.top, wide: !land && lw >= 900 && lh >= 560, land };
+  return { lw, lh, sc, ox: v.x * sc, oy: v.y * sc, wide: !land && lw >= 900 && lh >= 560, land };
 }
 /** Buttons' labels by id this session (ui.focused() answers with the label). */
 const labels = new Map<string, string>();
@@ -111,7 +109,6 @@ export function drawScreens(): void {
   else titleScreen(L);
   if (app.overlay) overlay(L);
   syncPill(L);
-  toast(L);
   if (app.focusNext) {
     const age = f.frame - app.openedFrame;
     // Retried until it takes (a focus request can be lost while the previously focused widget changes state).
@@ -167,8 +164,8 @@ function titleScreen(L: Layout): void {
       { id: "btn-settings", text: t("settings"), act: () => openMenu() },
     ], iw);
     const acct: Btn[] = [];
-    if (!platform.signedIn()) acct.push({ id: "btn-signin", text: t("shSignIn"), act: signIn });
-    if (platform.inviteLink()) acct.push({ id: "btn-invite", text: t("shInvite"), act: copyInvite });
+    if (!platform.signedIn()) acct.push({ id: "btn-signin", text: account("signIn"), act: signIn });
+    if (platform.inviteLink()) acct.push({ id: "btn-invite", text: account("invite"), act: copyInvite });
     if (acct.length) flow("title-account", acct, iw);
     para(t("starsTotal", { n: totalStars(), total: game.levels.length * 3 }), iw, "muted", "title-stars", true);
   }, L.land ? 8 : 14);
@@ -420,19 +417,12 @@ function howtoCard(w: number): void {
   button({ id: "btn-howto-close", text: t("close"), cls: "primary", act: closeOverlay });
 }
 
-// ------------------------------------------------------------------ sync pill and toast
+// ------------------------------------------------------------------ sync pill
 function syncPill(L: Layout): void {
   const s = platform.sync.status;
   if (!s) return;
   const text = t(s === "saving" ? "syncSaving" : s === "synced" ? "syncSynced" : "syncError");
   const at = app.screen === "game" ? { anchor: "top-end" as const, x: 64, y: L.land ? 12 : 16 } : { anchor: "bottom-end" as const, x: 12, y: 10 };
   ui.place("sync", at, () => { ui.style("sync").row("sync-row", () => { ui.style("sync-text").id("sync").label(text); }, { align: "center" }); });
-}
-function toast(L: Layout): void {
-  const tt = app.toast;
-  if (!tt) return;
-  const text = tt.text();
-  const w = Math.min(L.lw * 0.9, 420);
-  ui.place("toast", { anchor: "bottom", y: 16 }, () => ui.style("toast", { width: w }).column("toast-col", () => para(text, w - 34, "toast-text", "toast", true), { width: w, align: "center" }));
 }
 

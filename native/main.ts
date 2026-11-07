@@ -1,7 +1,7 @@
 // Paint Maze on the StarHermit engine: the entry module (starhermit.txt
 // engine.entry), played natively by the StarHermit client and in browsers by
 // the engine's web runtime. The rules (src/rules.js), the progress document
-// (src/storage.js) and the strings (src/i18n.js) are the browser build's pure
+// (src/storage.js) are the browser build's pure
 // modules, shared with the Node tests; this module is what its src/main.js did
 // around them: the level flow (start, resume from the saved roll string, roll,
 // undo, restart, hint, finish with stars, best moves and the leaderboard post),
@@ -13,7 +13,7 @@ import { onAction, onPointerButton, onTouch } from "starhermit:input";
 import * as ui from "starhermit:ui";
 import { onSessionEnded, requestSignIn } from "starhermit:platform";
 import { rules, storage, type Board, type Dir, type Level, type State } from "./game.ts";
-import { t } from "./i18n.ts";
+import { account, t } from "./i18n.ts";
 import * as audio from "./audio.ts";
 import * as platform from "./platform.ts";
 import { lookFor } from "./quality.ts";
@@ -23,15 +23,14 @@ import { applyWorld, initStyles } from "./style.ts";
 
 export type Screen = "title" | "levels" | "game";
 export type Overlay = null | "complete" | "howto";
-type Text = () => string;
 
+type Text = () => string;
 export const app = {
   screen: "title" as Screen,
   overlay: null as Overlay,
   /** Frame the screen or card opened on (the press that opened it must not also act on it). */
   openedFrame: 0,
   focusNext: null as string | null,
-  toast: null as null | { text: Text; until: number },
 };
 const now = (): number => frame().time;
 export const fresh = (n = 1): boolean => frame().frame - app.openedFrame <= n;
@@ -74,7 +73,8 @@ function opened(focus: string | null): void {
 export function openOverlay(o: Overlay, focus: string | null): void { app.overlay = o; opened(focus); }
 export function closeOverlay(): void { app.overlay = null; opened(null); }
 export function announce(text: string): void { if (text) ui.announce(text.slice(0, 480)); }
-export function toast(text: Text): void { app.toast = { text, until: now() + 3.2 }; }
+/** A notice at the window's bottom; a press still reaches the board. */
+export function toast(text: string): void { ui.toast!(text, { duration: 3.2, style: ["toast", "toast-text"], dismissible: false, position: "bottom" }); }
 
 // ------------------------------------------------------------------ progress
 export const profile = (): typeof platform.profile => platform.profile;
@@ -211,7 +211,7 @@ function postStars(level: Level): void {
 export function lbLine(): string | null {
   const r = game.lb;
   if (r === undefined) return null;
-  return !r ? t("lbPosting") : !r.posted ? t("lbNotPosted") : r.rank ? t("lbRank", { rank: r.rank }) : t("lbPosted");
+  return !r ? account("leaderboardPosting") : !r.posted ? account("leaderboardNotPosted") : r.rank ? account("leaderboardRank", { rank: r.rank }) : account("leaderboardPosted");
 }
 
 export function undo(): void {
@@ -268,7 +268,7 @@ export function copyInvite(): void {
   if (!link) return;
   let ok = false;
   try { clipboard.writeText(link); ok = true; } catch { ok = false; }
-  toast(ok ? () => t("shCopied") : () => t("shCopyFailed"));
+  toast(account(ok ? "inviteCopied" : "inviteFailed"));
 }
 
 // ------------------------------------------------------------------ input
@@ -363,7 +363,7 @@ onStart(() => {
   goTo("title");
 });
 onPreferencesChange((p) => render.setReducedMotion(p.reducedMotion));
-onSessionEnded(() => toast(() => t("shSignedOut")));
+onSessionEnded(() => toast(account("signedOut")));
 onSuspend(() => platform.flush());
 onQuit(() => platform.flush());
 
@@ -372,7 +372,6 @@ onUpdate(() => {
   applyWorld(game.world, ui.preferences().highContrast);
   render.update();
   const time = now();
-  if (app.toast && app.toast.until < time) app.toast = null;
   if (platform.sync.status && platform.sync.until < time) platform.sync.status = null;
   if (game.perfectAt !== null && time >= game.perfectAt) { game.perfectAt = null; audio.play("perfect", { gain: 0.6 }); }
   if (game.completeAt !== null && time >= game.completeAt) {
