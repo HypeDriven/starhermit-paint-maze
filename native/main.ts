@@ -1,3 +1,4 @@
+import { withLanguageRender as __l10nRender } from "./l10n/menu.ts";
 // Paint Maze on the StarHermit engine: the entry module (starhermit.txt
 // engine.entry), played natively by the StarHermit client and in browsers by
 // the engine's web runtime. The rules (src/rules.js), the progress document
@@ -379,7 +380,11 @@ onUpdate(() => {
     if (game.finished && app.screen === "game") openOverlay("complete", game.complete?.last ? "btn-replay" : "btn-next");
   }
 });
-onRender(() => {
+onRender(__l10nRender(() => {
   drawScreens();
   pointerInput();
-});
+}));
+
+// localization-runtime:menu
+import { installLanguageMenu as __installLanguageMenu } from "./l10n/menu.ts";
+__installLanguageMenu(false);

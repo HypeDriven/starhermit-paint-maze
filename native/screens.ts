@@ -1,3 +1,6 @@
+import { localizedStyle as __l10nStyle } from "./l10n/font.ts";
+// localization-runtime:attached
+import { openLocalizedOptions as __l10nOptions } from "./l10n/menu.ts";
 // The browser build's DOM (index.html + styles.css) as starhermit:ui, built
 // every frame over the page gradient: the title (logo, Play/Continue, Levels,
 // How to play, Settings, sign-in and invite, the star total), the level list
@@ -8,7 +11,17 @@
 // cross), landscape phone (≤ 559 px tall: the same, smaller) and portrait (a
 // thumb row of arrows and tools under the board). Settings opens the
 // runtime's Options (sound, graphics, language, reduced motion, controls).
-import { frame, openMenu } from "starhermit:engine";
+// The browser build's DOM (index.html + styles.css) as starhermit:ui, built
+// every frame over the page gradient: the title (logo, Play/Continue, Levels,
+// How to play, Settings, sign-in and invite, the star total), the level list
+// (one section per world), the game (top bar, HUD, tip card, the board and the
+// controls), the finish and how-to cards, the sync pill. The
+// browser's media queries are layouts picked by the window's logical size:
+// wide (≥ 900 × 560: the controls in a column at the right, the arrows in a
+// cross), landscape phone (≤ 559 px tall: the same, smaller) and portrait (a
+// thumb row of arrows and tools under the board). Settings opens the
+// runtime's Options (sound, graphics, language, reduced motion, controls).
+import { frame } from "starhermit:engine";
 import { bindings } from "starhermit:input";
 import * as draw from "starhermit:draw";
 import * as ui from "starhermit:ui";
@@ -46,13 +59,13 @@ function button(b: Btn, width: number | null = null, height: number | null = nul
   const cls = b.cls ?? "btn";
   const opts: ui.ButtonOptions = {};
   if (b.disabled) opts.disabled = true;
-  if (b.icon) opts.content = () => { ui.style({ text: { size: 19, weight: "600" } }).label(b.icon!); };
+  if (b.icon) opts.content = () => { ui.style(__l10nStyle({ text: { size: 19, weight: "600" } })).label(b.icon!); };
   else if (b.glyph) {
     const size = cls === "tool" ? 15 : 16;
     opts.content = () => {
       ui.row(`${b.id}-face`, () => {
-        ui.style({ text: { size, weight: "600" } }).label(b.glyph!);
-        ui.style({ text: { size, weight: "600" } }).label(b.text);
+        ui.style(__l10nStyle({ text: { size, weight: "600" } })).label(b.glyph!);
+        ui.style(__l10nStyle({ text: { size, weight: "600" } })).label(b.text);
       }, { spacing: 5, align: "center" });
     };
   }
@@ -60,7 +73,7 @@ function button(b: Btn, width: number | null = null, height: number | null = nul
   if (width != null) box.width = width;
   if (height != null) box.height = height;
   labels.set(b.id, b.text);
-  const hit = ui.style(cls, box).id(b.id).button(b.text, opts);
+  const hit = ui.style(__l10nStyle(cls), __l10nStyle(box)).id(b.id).button(b.text, opts);
   if (hit && !fresh(0)) { b.act(); if (app.screen === "game" && pointerActivation()) ui.setFocus(null); }
   return hit;
 }
@@ -75,17 +88,17 @@ function para(text: string, width: number, cls = "p", id?: string, center = fals
   if (!text) return;
   const styles: (string | ui.Style)[] = [cls];
   if (center) styles.push({ text: { align: "center" } });
-  let u = ui.style(...styles);
+  let u = ui.style(...__l10nStyle(styles));
   if (id) u = u.id(id);
   if (tw(text, styles) <= width) {
-    if (center) ui.row(`${id ?? text}-c`, () => { (id ? ui.style(...styles).id(id) : ui.style(...styles)).label(text); }, { width, justify: "center" });
+    if (center) ui.row(`${id ?? text}-c`, () => { (id ? ui.style(...__l10nStyle(styles)).id(id) : ui.style(...__l10nStyle(styles))).label(text); }, { width, justify: "center" });
     else u.label(text);
   } else u.paragraph(text, width);
 }
 /** Stars as the browser build's .stars spans: lit ones in the accent, the rest in the line colour. */
 function stars(id: string, n: number, size: number): void {
   ui.row(id, () => {
-    for (let k = 1; k <= 3; k++) ui.style(k <= n ? "stars" : "stars-off", { text: { size } }).label("★");
+    for (let k = 1; k <= 3; k++) ui.style(__l10nStyle(k <= n ? "stars" : "stars-off"), __l10nStyle({ text: { size } })).label("★");
   }, { spacing: size > 30 ? 6 : 2, align: "center" });
 }
 const keyNames: Record<string, string> = { Escape: "Esc", "Arrow Up": "↑", "Arrow Down": "↓", "Arrow Left": "←", "Arrow Right": "→" };
@@ -154,14 +167,14 @@ function titleScreen(L: Layout): void {
       } });
     }
     const h1 = L.land ? 32 : Math.min(54, Math.max(35, L.lw * 0.08));
-    ui.style("h1", { text: { size: h1 } }).id("title-heading").heading("Paint Maze");
+    ui.style(__l10nStyle("h1"), __l10nStyle({ text: { size: h1 } })).id("title-heading").heading("Paint Maze");
     para(t("tagline"), iw, "tagline", "tagline", true);
     if (platform.signedIn()) para(t("hello", { name: platform.displayName() ?? t("playerId", { id: platform.playerIdPrefix() }) }), iw, "muted", "hello", true);
     button({ id: "btn-play", text: t(started() ? "continue" : "play"), cls: "big", act: play });
     flow("title-row", [
       { id: "btn-levels", text: t("levels"), act: () => goTo("levels", "current-level") },
       { id: "btn-howto", text: t("howTo"), act: () => openOverlay("howto", "btn-howto-close") },
-      { id: "btn-settings", text: t("settings"), act: () => openMenu() },
+      { id: "btn-settings", text: t("settings"), act: () => __l10nOptions() },
     ], iw);
     const acct: Btn[] = [];
     if (!platform.signedIn()) acct.push({ id: "btn-signin", text: account("signIn"), act: signIn });
@@ -181,8 +194,8 @@ function topBar(L: Layout, key: string, left: Btn, title: string, right: () => v
       button({ ...left, cls: "icon" }, 44, 44);
       ui.row(`bar-${key}-mid`, () => {
         const avail = Math.max(40, L.lw - 24 - 44 - 120);
-        if (tw(title, "bar-title", "heading") <= avail) ui.style("bar-title").id(`${key}-title`).heading(title);
-        else ui.style("bar-title").id(`${key}-title`).paragraph(title, avail);
+        if (tw(title, "bar-title", "heading") <= avail) ui.style(__l10nStyle("bar-title")).id(`${key}-title`).heading(title);
+        else ui.style(__l10nStyle("bar-title")).id(`${key}-title`).paragraph(title, avail);
       }, { grow: 1, justify: "center", align: "center" } as ui.Layout);
       right();
     }, { width: L.lw - 24, height: h, spacing: 10, align: "center" });
@@ -193,7 +206,7 @@ function topBar(L: Layout, key: string, left: Btn, title: string, right: () => v
 // ------------------------------------------------------------------ levels
 function levelsScreen(L: Layout): void {
   const top = topBar(L, "levels", { id: "btn-levels-back", text: t("back"), icon: "←", act: () => goTo("title") }, t("levels"), () => {
-    ui.style("pill").row("levels-stars", () => { ui.style("p", { text: { weight: "600" } }).id("levels-stars-text").label(`★ ${totalStars()} / ${game.levels.length * 3}`); }, { align: "center" });
+    ui.style(__l10nStyle("pill")).row("levels-stars", () => { ui.style(__l10nStyle("p"), __l10nStyle({ text: { weight: "600" } })).id("levels-stars-text").label(`★ ${totalStars()} / ${game.levels.length * 3}`); }, { align: "center" });
   });
   const w = Math.min(1088, L.lw - 24);
   const y = top + 6;
@@ -220,9 +233,9 @@ function worldSection(wld: string, w: number, current: number): void {
   const locked = !isUnlocked(idxs[0]!);
   ui.column(`world-${wld}`, () => {
     ui.row(`world-${wld}-head`, () => {
-      ui.style("world-name").id(`world-${wld}-name`).heading(worldName(wld));
+      ui.style(__l10nStyle("world-name")).id(`world-${wld}-name`).heading(worldName(wld));
       ui.spacer();
-      ui.style("small").id(`world-${wld}-stars`).label(`★ ${got} / ${idxs.length * 3}`);
+      ui.style(__l10nStyle("small")).id(`world-${wld}-stars`).label(`★ ${got} / ${idxs.length * 3}`);
     }, { width: w, align: "end" });
     const gap = 8;
     const cols = Math.max(1, Math.floor((w + gap) / (64 + gap)));
@@ -240,12 +253,12 @@ function worldSection(wld: string, w: number, current: number): void {
         if (locked) box.opacity = 0.45;
         const label = `${t("level", { n })}${unlocked ? "" : " — " + t("locked")}${r ? ` — ${r.stars}★` : ""}`;
         if (isCur) labels.set("current-level", label);
-        const hit = ui.style("level", box).id(isCur ? "current-level" : `lvl-${lvl.id}`).button(label, {
+        const hit = ui.style(__l10nStyle("level"), __l10nStyle(box)).id(isCur ? "current-level" : `lvl-${lvl.id}`).button(label, {
           disabled: !unlocked,
           content: () => {
             ui.column(`${lvl.id}-face`, () => {
-              ui.style(isCur ? "lvl-n-on" : "lvl-n").label(unlocked ? String(n) : "🔒");
-              ui.style(isCur ? "lvl-s-on" : "lvl-s", isCur ? {} : { text: { color: accent } }).label(r ? "★".repeat(r.stars) : " ");
+              ui.style(__l10nStyle(isCur ? "lvl-n-on" : "lvl-n")).label(unlocked ? String(n) : "🔒");
+              ui.style(__l10nStyle(isCur ? "lvl-s-on" : "lvl-s"), __l10nStyle(isCur ? {} : { text: { color: accent } })).label(r ? "★".repeat(r.stars) : " ");
             }, { spacing: 2, align: "center" });
           },
         });
@@ -261,7 +274,7 @@ function gameScreen(L: Layout): void {
   const lvl = game.level!, st = game.state!;
   const f = frame();
   const top = topBar(L, "game", { id: "btn-menu", text: t("levels"), icon: "☰", act: toLevels }, t("levelOf", { world: worldName(lvl.world), n: levelNumber(game.idx) }), () => {
-    button({ id: "btn-settings-game", text: t("settings"), icon: "⚙", cls: "icon", act: () => openMenu() }, 44, 44);
+    button({ id: "btn-settings-game", text: t("settings"), icon: "⚙", cls: "icon", act: () => __l10nOptions() }, 44, 44);
   });
   // .hud: Moves, Par, Left and the star rating so far.
   let y = top + (L.land ? 0 : 2);
@@ -270,8 +283,8 @@ function gameScreen(L: Layout): void {
     ui.row("hud-row", () => {
       for (const [id, k, v] of [["hud-moves", "moves", st.moves], ["hud-par", "par", lvl.par], ["hud-left", "left", st.remaining]] as const) {
         ui.row(`${id}-pair`, () => {
-          ui.style("hud-k", { text: { size: hudSize } }).label(t(k));
-          ui.style("hud-v").id(id).label(String(v));
+          ui.style(__l10nStyle("hud-k"), __l10nStyle({ text: { size: hudSize } })).label(t(k));
+          ui.style(__l10nStyle("hud-v")).id(id).label(String(v));
         }, { spacing: 5, align: "center" });
       }
       stars("hud-stars", rules.starsFor(Math.max(st.moves, 1), lvl.par), 18);
@@ -285,12 +298,12 @@ function gameScreen(L: Layout): void {
     const size = L.land ? 14 : 15;
     const tW = Math.min(maxW, tw(text, ["tip-text", { text: { size } }]) + 30);
     const r = ui.place("tip", { anchor: "top", y }, () => {
-      ui.style("tip", { width: tW }).row("tip-box", () => {
-        ui.style("tip-bar", { width: 4 }).column("tip-edge", () => undefined, { width: 4 });
+      ui.style(__l10nStyle("tip"), __l10nStyle({ width: tW })).row("tip-box", () => {
+        ui.style(__l10nStyle("tip-bar"), __l10nStyle({ width: 4 })).column("tip-edge", () => undefined, { width: 4 });
         ui.column("tip-body", () => {
           const st: (string | ui.Style)[] = ["tip-text", { text: { size } }];
-          if (tw(text, st) <= tW - 28) ui.style(...st).id("tip").label(text);
-          else ui.style(...st).id("tip").paragraph(text, tW - 28);
+          if (tw(text, st) <= tW - 28) ui.style(...__l10nStyle(st)).id("tip").label(text);
+          else ui.style(...__l10nStyle(st)).id("tip").paragraph(text, tW - 28);
         }, { padding: { top: L.land ? 4 : 8, bottom: L.land ? 4 : 8, start: 8, end: 12 } });
       }, { width: tW, align: "stretch", clip: true, spacing: 0 });
     });
@@ -336,9 +349,9 @@ function gameScreen(L: Layout): void {
 function dirButton(d: Dir, w: number, h: number): void {
   const legal = legalDirs();
   const label = t("rollAria", { dir: t("dir." + d) });
-  const hit = ui.style(game.hintDir === d ? "dir-hint" : "dir", { width: w, height: h }).id(`dir-${d}`).button(label, {
+  const hit = ui.style(__l10nStyle(game.hintDir === d ? "dir-hint" : "dir"), __l10nStyle({ width: w, height: h })).id(`dir-${d}`).button(label, {
     disabled: !legal.has(d),
-    content: () => { ui.style({ text: { size: 24, weight: "600" } }).label(GLYPH[d]); },
+    content: () => { ui.style(__l10nStyle({ text: { size: 24, weight: "600" } })).label(GLYPH[d]); },
   });
   if (hit && !fresh(0)) { roll(d); if (pointerActivation()) ui.setFocus(null); }
 }
@@ -363,7 +376,7 @@ function overlay(L: Layout): void {
   const f = frame();
   // .overlay: the dim over the page; it takes the pointer, so nothing under it is pressed.
   ui.place("scrim", { anchor: "top-start", x: -L.ox / L.sc, y: -L.oy / L.sc }, () => {
-    ui.style("scrim", { width: f.width / L.sc, height: f.height / L.sc }).column("scrim-box", () => undefined, { width: f.width / L.sc, height: f.height / L.sc });
+    ui.style(__l10nStyle("scrim"), __l10nStyle({ width: f.width / L.sc, height: f.height / L.sc })).column("scrim-box", () => undefined, { width: f.width / L.sc, height: f.height / L.sc });
   });
   const outer = Math.min(448, L.lw - 32);
   const pad = 22;
@@ -374,7 +387,7 @@ function overlay(L: Layout): void {
   const inner = outer - 2 * pad - (scroll ? 14 : 0);
   const r = ui.place(`card-${key}`, "center", () => {
     const body = (): void => {
-      const c = ui.style("card", { width: outer }).id(`overlay-${key}`).column(key === "complete" ? t("complete") : t("howTo"), () => {
+      const c = ui.style(__l10nStyle("card"), __l10nStyle({ width: outer })).id(`overlay-${key}`).column(key === "complete" ? t("complete") : t("howTo"), () => {
         if (key === "complete") completeCard(inner);
         else howtoCard(inner);
       }, { width: outer, spacing: 12, align: "center" });
@@ -390,7 +403,7 @@ function completeCard(w: number): void {
   if (!c) return;
   stars("complete-stars", c.stars, 42);
   const title = c.worldEnd ? t("worldDone", { world: worldName(c.world) }) : t("complete");
-  if (tw(title, "h2", "heading") <= w) ui.style("h2").id("complete-title").heading(title);
+  if (tw(title, "h2", "heading") <= w) ui.style(__l10nStyle("h2")).id("complete-title").heading(title);
   else para(title, w, "h2", "complete-title", true);
   para(t("completeSub", { moves: c.moves, par: c.par }), w, "p", "complete-sub", true);
   const extra = c.last ? t("allDone") : c.newBest ? t("newBest") : "";
@@ -405,7 +418,7 @@ function completeCard(w: number): void {
   flow("complete-actions", list, w);
 }
 function howtoCard(w: number): void {
-  if (tw(t("howTo"), "h2", "heading") <= w) ui.style("h2").id("howto-title").heading(t("howTo"));
+  if (tw(t("howTo"), "h2", "heading") <= w) ui.style(__l10nStyle("h2")).id("howto-title").heading(t("howTo"));
   else para(t("howTo"), w, "h2", "howto-title", true);
   para(t("howToBody"), w, "p", "howto-body", true);
   const k = (a: string): string => keysFor(a);
@@ -423,6 +436,6 @@ function syncPill(L: Layout): void {
   if (!s) return;
   const text = t(s === "saving" ? "syncSaving" : s === "synced" ? "syncSynced" : "syncError");
   const at = app.screen === "game" ? { anchor: "top-end" as const, x: 64, y: L.land ? 12 : 16 } : { anchor: "bottom-end" as const, x: 12, y: 10 };
-  ui.place("sync", at, () => { ui.style("sync").row("sync-row", () => { ui.style("sync-text").id("sync").label(text); }, { align: "center" }); });
+  ui.place("sync", at, () => { ui.style(__l10nStyle("sync")).row("sync-row", () => { ui.style(__l10nStyle("sync-text")).id("sync").label(text); }, { align: "center" }); });
 }
 

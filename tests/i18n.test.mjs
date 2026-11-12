@@ -18,14 +18,14 @@ test('every locale defines every key with the same placeholders', () => {
 
 test('the tables translate', () => {
   assert.equal(STRINGS['de-DE'].completeSub, '{moves} Züge · Par {par}');
-  assert.equal(LOCALES.length, 9);
+  assert.equal(LOCALES.length, 52);
 });
 
 test('every key the engine client uses exists in all nine locales, and no table row is unused', async () => {
   const fs = await import('node:fs');
   const root = new URL('..', import.meta.url);
   const keys = new Set();
-  for (const f of fs.readdirSync(new URL('native/', root))) {
+  for (const f of fs.readdirSync(new URL('native/', root), { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith('.ts')).map((entry) => entry.name)) {
     const src = fs.readFileSync(new URL('native/' + f, root), 'utf8');
     for (const m of src.matchAll(/(?<![\w.$])t\(\s*"([\w.-]*[\w-])"/g)) keys.add(m[1]);
   }
