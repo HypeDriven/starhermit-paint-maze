@@ -17,7 +17,7 @@ frames 10
 click =Settings
 frames 60
 save options
-key F1 1
+click =Close
 frames 20
 click =Levels
 until 60 Workshop
