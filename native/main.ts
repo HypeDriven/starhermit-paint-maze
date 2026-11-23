@@ -1,3 +1,4 @@
+import { showCursor } from "./cursor.ts";
 import { withLanguageRender as __l10nRender } from "./l10n/menu.ts";
 // Paint Maze on the StarHermit engine: the entry module (starhermit.txt
 // engine.entry), played natively by the StarHermit client and in browsers by
@@ -353,6 +354,7 @@ function applyLook(): void {
 }
 
 onStart(() => {
+  showCursor();
   initStyles();
   platform.initPlatform(now);
   const data = files.readJson("data/levels.json") as unknown as { levels: Level[]; worlds: string[] };
