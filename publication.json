@@ -12,7 +12,7 @@
     "metadataSource": "starhermit.txt",
     "createdAt": "2026-09-01T07:01:05.210476+00:00",
     "coverArtSource": "manifest",
-    "coverArtUpdatedAt": "2026-11-23T17:02:20.437084+00:00",
+    "coverArtUpdatedAt": "2026-11-26T14:41:17.021902+00:00",
     "submittedByUserId": "2712e04e-461b-4d23-81ae-e40b429128a8",
     "submittedByUsername": "starhermit",
     "hosting": {
@@ -22,9 +22,9 @@
       "pinnedCommitSha": null,
       "deployedCommitSha": null,
       "deployError": null,
-      "deployedAt": "2026-11-23T17:02:20.426331+00:00",
+      "deployedAt": "2026-11-26T14:41:17.009079+00:00",
       "externalLaunchUrl": null,
-      "engineVersion": "1.47.0",
+      "engineVersion": "1.50.0",
       "deployWarning": null
     },
     "description": "Roll a paint ball through corridor mazes until every tile is painted, in as few moves as possible.",
@@ -36,19 +36,19 @@
     "links": [],
     "isDisabled": false
   },
-  "publishedAt": "2026-11-23T17:02:20.570Z",
-  "sourceCommit": "88a80c56633c87091129e008dd62c5b58e52824d",
-  "bytesReceived": 1003426,
-  "archiveSha256": "d55fa04aa7784779a22a6b1292658a7f54416bb883767205b82b403c747d082d",
+  "publishedAt": "2026-11-26T14:41:16.617Z",
+  "sourceCommit": "90b35cb05a0e6da07b85d99ec57f51667f4b18ed",
+  "bytesReceived": 1003428,
+  "archiveSha256": "74531880bb9de7cffb76561df2bd2f336b848e316f733d6d79d0b8d5a0920363",
   "indexSha256": "c01ec6b2f71e138d966d1135d333b8a868342fee968f2af0ee62c84b9faf8a23",
   "result": {
     "clientPublished": true,
     "serverImageLoaded": false,
     "imageDigest": null,
-    "bytesReceived": 1003426,
+    "bytesReceived": 1003428,
     "mode": "replace",
     "filesRemoved": 0,
-    "engineVersion": "1.47.0",
+    "engineVersion": "1.50.0",
     "deployWarning": null
   },
   "liveVerification": {
