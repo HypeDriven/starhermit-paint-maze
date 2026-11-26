@@ -35,7 +35,7 @@
     "native/render.ts": {"sha256": "8bcc051b1656bfdddd690ce8129ea63d9d973f5540ca6ad453928ad86000aa02", "size": 17866},
     "native/screens.ts": {"sha256": "a44d5fc74a7ad4c2f734a8ac7922991e61556c280ef2e46b56a0cba8b67a00e9", "size": 24630},
     "native/style.ts": {"sha256": "e62ca9601e8049fd845d14d40ca5e757315a309075a8d202ba5debb3ac8b6e51", "size": 2863},
-    "publication.json": {"sha256": "9d01198aa4f8f076978dfd53b004c25454157d865f228f5eca4dba72a252e725", "size": 4304},
+    "publication.json": {"sha256": "51382f5955d64a729435ecc49d4fc90423082d0463c337ed58934198b4a4f78e", "size": 4304},
     "score-script.js": {"sha256": "1a5ed2ac9d9f110d3e2111f34a78ea142fdb3fc48fa01dd2b3590b30a99f2494", "size": 2486},
     "sfx/ball-stop.opus": {"sha256": "12ff2f39c32fa9ae845c850d42388abd0bcf2737228018a1d168a8053a55a25b", "size": 12611},
     "sfx/level-complete.opus": {"sha256": "7fe78d312f31489027bc1f75b478fe03613a50a6bcb17df815d49e01f1223ec4", "size": 26046},
